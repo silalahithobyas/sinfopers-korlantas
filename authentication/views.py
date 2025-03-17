@@ -2,6 +2,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth import get_user_model
 from .serializers import (
     UserSerializer,
@@ -15,8 +16,15 @@ from .permissions import IsAdminUser
 User = get_user_model()
 
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
+    pagination_class = StandardResultsSetPagination
     
     def get_serializer_class(self):
         if self.action == 'create':
