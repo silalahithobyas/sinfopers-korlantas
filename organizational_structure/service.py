@@ -41,3 +41,8 @@ class OrganizationalStructureService(ABC):
 
         chart.delete()
         return chart
+
+    @classmethod
+    def get_all_chart_name(cls) :
+        chart = Chart.objects.all()
+        return chart
