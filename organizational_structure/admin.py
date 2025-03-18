@@ -1,3 +1,5 @@
 from django.contrib import admin
+from organizational_structure.models import Chart, Nodes
 
-# Register your models here.
+admin.site.register(Chart)
+admin.site.register(Nodes)
