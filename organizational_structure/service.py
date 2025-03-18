@@ -82,3 +82,14 @@ class OrganizationalStructureService(ABC):
 
         chart.delete()
         return chart
+
+    @classmethod
+    def delete_node(cls, data, chart_id) :
+        nodes_id = data.get("node_id", None)
+        nodes = Nodes.objects.filter(id=nodes_id).first()
+        if(not nodes) :
+            raise BadRequestException(f"Node with id {nodes_id} not exists.")
+
+        nodes.delete()
+        chart = cls.get_chart(chart_id)
+        return chart
