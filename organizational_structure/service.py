@@ -73,3 +73,12 @@ class OrganizationalStructureService(ABC):
 
         if(not personnel) :
             raise BadRequestException(f"Personnel with id {personnel_id} not exists.")
+
+    @classmethod
+    def delete_chart(cls, chart_id) :
+        chart = Chart.objects.filter(id=chart_id).first()
+        if(not chart) :
+            raise BadRequestException(f"Chart with id {chart_id} not exists.")
+
+        chart.delete()
+        return chart
