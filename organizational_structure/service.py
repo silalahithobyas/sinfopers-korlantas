@@ -46,3 +46,19 @@ class OrganizationalStructureService(ABC):
     def get_all_chart_name(cls) :
         chart = Chart.objects.all()
         return chart
+
+    @classmethod
+    def update_nodes(cls, nodes_id, **data) :
+        nodes = Nodes.objects.filter(id=nodes_id).first()
+        personnel_id = data.pop("personnel_id")
+        personnel = UserPersonil.objects.filter(id=personnel_id).first()
+
+        if(not nodes) :
+            raise BadRequestException(f"Nodes with id {nodes_id} not exists.")
+
+        if(not personnel) :
+            raise BadRequestException(f"Personnel with id {personnel_id} not exists.")
+
+        nodes.personnel = personnel
+        nodes.save()
+        return nodes
