@@ -83,3 +83,26 @@ class OrganizationalStructureService(ABC):
         parent_node.child.add(child_node)
 
         return chart
+
+    @classmethod
+    @transaction.atomic
+    def create_child_offsets_node(cls, chart_id, **data) :
+        parent_id = data.pop('parent_id')
+        personnel_id = data.pop('personnel_id')
+        parent_node = Nodes.objects.filter(id=parent_id).first()
+        personnel = UserPersonil.objects.filter(id=personnel_id).first()
+
+        if(not parent_node) :
+            raise BadRequestException(f"Node with id {parent_id} not exists.")
+
+        if(not personnel) :
+            raise BadRequestException(f"Personnel with id {personnel_id} not exists.")
+
+
+        chart = cls.get_chart(chart_id)
+        child_node = Nodes.objects.create(**data, personnel=personnel)
+        parent_node.child_offsets.add(child_node)
+
+        return chart
+
+
