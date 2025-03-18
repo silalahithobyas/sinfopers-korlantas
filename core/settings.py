@@ -162,8 +162,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
-# TODO: uncomment kalau auth user udh diimplementasiin
-# AUTH_USER_MODEL = 'authentication.AuthUser'  # custom user model
+AUTH_USER_MODEL = 'authentication.AuthUser'  # custom user model
 
 
 REST_FRAMEWORK = {
