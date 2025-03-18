@@ -7,4 +7,19 @@ from organizational_structure.models import Chart, Nodes
 from personnel_database.models.users import UserPersonil
 
 class OrganizationalStructureService(ABC):
-    pass
+
+    @classmethod
+    @transaction.atomic
+    def create_chart(cls, **data) :
+        nama = data.pop('nama_chart')
+        personnel_id = data.pop("personnel_id")
+        personnel = UserPersonil.objects.filter(id=personnel_id).first()
+
+        if(not personnel) :
+            raise BadRequestException(f"Personnel with id {personnel_id} not exists.")
+
+        nodes = Nodes.objects.create(personnel=personnel)
+        chart = Chart.objects.create(nama=nama, nodes=nodes)
+
+        return chart
+
