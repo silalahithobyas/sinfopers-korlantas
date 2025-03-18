@@ -30,6 +30,11 @@ class ChartView(APIView) :
             return Response(prepare_error_response(str(e)), e.status_code)
         except Exception as e :
             return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def get(self, request) :
+        chart = self.service.get_all_chart_name()
+        serializer_data = self.chart_name_serializer(chart, many=True).data
+        return Response(prepare_success_response(serializer_data), status.HTTP_200_OK)
 
 
 class ChartDetailView(APIView) :

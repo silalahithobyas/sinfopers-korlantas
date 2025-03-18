@@ -24,6 +24,30 @@ class OrganizationalStructureService(ABC):
         return chart
 
     @classmethod
+    @transaction.atomic
+    def get_chart(cls, chart_id) :
+        chart = Chart.objects.filter(id = chart_id).first()
+
+        if(not chart) :
+            raise BadRequestException(f"Chart with id {chart_id} not exists.")
+
+        return chart
+
+    @classmethod
+    def delete_chart(cls, chart_id) :
+        chart = Chart.objects.filter(id=chart_id).first()
+        if(not chart) :
+            raise BadRequestException(f"Chart with id {chart_id} not exists.")
+
+        chart.delete()
+        return chart
+
+    @classmethod
+    def get_all_chart_name(cls) :
+        chart = Chart.objects.all()
+        return chart
+
+    @classmethod
     def update_nodes(cls, nodes_id, **data) :
         nodes = Nodes.objects.filter(id=nodes_id).first()
         personnel_id = data.pop("personnel_id")
@@ -74,13 +98,11 @@ class OrganizationalStructureService(ABC):
         if(not personnel) :
             raise BadRequestException(f"Personnel with id {personnel_id} not exists.")
 
-    @classmethod
-    def delete_chart(cls, chart_id) :
-        chart = Chart.objects.filter(id=chart_id).first()
-        if(not chart) :
-            raise BadRequestException(f"Chart with id {chart_id} not exists.")
 
-        chart.delete()
+        chart = cls.get_chart(chart_id)
+        child_node = Nodes.objects.create(**data, personnel=personnel)
+        parent_node.child_offsets.add(child_node)
+
         return chart
 
     @classmethod
@@ -93,3 +115,5 @@ class OrganizationalStructureService(ABC):
         nodes.delete()
         chart = cls.get_chart(chart_id)
         return chart
+
+
