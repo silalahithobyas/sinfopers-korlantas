@@ -34,6 +34,12 @@ services:
     env_file:
       - .env
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   nginx:
     image: nginx:1.21-alpine
@@ -44,7 +50,8 @@ services:
       - static_volume:/app/static
       - media_volume:/app/media
     depends_on:
-      - web
+      web:
+        condition: service_healthy
     restart: always
 
 volumes:

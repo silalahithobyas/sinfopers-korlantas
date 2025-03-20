@@ -16,8 +16,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.static import serve
+from django.http import HttpResponse
 
 from core import settings
+
+# Simple health check view
+def health_check(request):
+    return HttpResponse("OK", content_type="text/plain")
 
 urlpatterns = [
     path('backend/admin', admin.site.urls),
@@ -26,4 +31,5 @@ urlpatterns = [
     path('api/v1/staffing-status/', include('staffing_status.urls')),
     path('api/v1/organizational-structure/', include('organizational_structure.urls')),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    path('health/', health_check, name='health_check'),
 ]
