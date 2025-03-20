@@ -21,10 +21,9 @@ from core import settings
 
 urlpatterns = [
     path('backend/admin', admin.site.urls),
-    # TODO: uncomment kalau udah diimplementasiin sama masing-masing
-    # path('api/v1/auth/', include('authentication.urls')),
-    # path('api/v1/personil/', include('personnel_database.urls')),
-    # path('api/v1/staffing-status/', include('staffing_status.urls')),
-    # path('api/v1/organizational-structure/', include('organizational_structure.urls')),
+    path('api/v1/auth/', include('authentication.urls')),
+    path('api/v1/personil/', include('personnel_database.urls')),
+    path('api/v1/staffing-status/', include('staffing_status.urls')),
+    path('api/v1/organizational-structure/', include('organizational_structure.urls')),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
 ]
