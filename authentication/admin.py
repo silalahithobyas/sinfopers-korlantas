@@ -1,41 +1,27 @@
 from django.contrib import admin
-from django.contrib.auth import get_user_model
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.contrib.auth.admin import UserAdmin
 
-User = get_user_model()
+from authentication.models import AuthUser
 
 
-class CustomUserChangeForm(UserChangeForm):
-    class Meta(UserChangeForm.Meta):
-        model = User
-
-
-class CustomUserCreationForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
-        model = User
-
-
-class UserAdmin(BaseUserAdmin):
-    form = CustomUserChangeForm
-    add_form = CustomUserCreationForm
-    
-    list_display = ('username', 'full_name', 'role', 'is_staff', 'is_active')
-    list_filter = ('is_staff', 'is_active', 'role')
+class CustomUserAdmin(UserAdmin):
+    model = AuthUser
+    list_display = ('username','is_staff', 'is_active', 'email')
+    list_filter = ('is_staff', 'is_active',)
     fieldsets = (
-        (None, {'fields': ('username', 'password')}),
-        ('Personal info', {'fields': ('full_name', 'email')}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'role')}),
-        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        (None, {'fields': ('email', 'username',)}),
+        ('Permissions', {'fields': ('is_staff', 'is_active')}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2', 'full_name', 'role', 'is_staff', 'is_active'),
-        }),
+            'fields': ('username', 'password1', 'password2', 'is_staff', 'is_active')}
+         ),
     )
-    search_fields = ('username', 'full_name')
-    ordering = ('username',)
+    search_fields = ('username',)
 
+admin.site.register(AuthUser, CustomUserAdmin)
 
-admin.site.register(User, UserAdmin)
+admin.site.site_header = "Backend"
+admin.site.site_title = "Sibinkar Admin"
+admin.site.index_title = "Sibinkar Admin"
