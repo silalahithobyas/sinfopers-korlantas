@@ -1,3 +1,5 @@
 from django.contrib import admin
 
-# Register your models here.
+from staffing_status.models import StaffingStatus
+
+admin.site.register(StaffingStatus)

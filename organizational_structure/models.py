@@ -1,8 +1,9 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 from authentication.models.base import BaseModel
-from personnel_database.models.users import UserPersonil
 
+from personnel_database.models.users import UserPersonil
 
 class Nodes(BaseModel) :
     personnel = models.ForeignKey(UserPersonil, on_delete=models.CASCADE, null=True)
