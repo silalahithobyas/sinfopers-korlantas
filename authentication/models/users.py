@@ -1,3 +1,5 @@
+# Update authentication/models/users.py
+
 import uuid
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.base_user import BaseUserManager
@@ -43,6 +45,25 @@ class AuthUser(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
+    # Add role field
+    ADMIN = 'admin'
+    HR = 'hr'
+    PIMPINAN = 'pimpinan'
+    ANGGOTA = 'anggota'
+
+    ROLE_CHOICES = [
+        (ADMIN, 'Admin'),
+        (HR, 'HR'),
+        (PIMPINAN, 'Pimpinan'),
+        (ANGGOTA, 'Anggota'),
+    ]
+
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default=ANGGOTA,
+    )
+
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = []
 
@@ -50,3 +71,19 @@ class AuthUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.username}"
+
+    @property
+    def is_admin(self):
+        return self.is_staff or self.role == self.ADMIN
+
+    @property
+    def is_hr(self):
+        return self.role == self.HR
+
+    @property
+    def is_pimpinan(self):
+        return self.role == self.PIMPINAN
+
+    @property
+    def is_anggota(self):
+        return self.role == self.ANGGOTA
