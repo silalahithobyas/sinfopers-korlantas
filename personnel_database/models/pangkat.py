@@ -1,3 +1,4 @@
+# personnel_database/models/pangkat.py
 import enum
 from django.db import models
 

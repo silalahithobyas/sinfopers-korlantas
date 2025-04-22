@@ -70,7 +70,8 @@ LOCAL_APPS = [
     'authentication',
     'personnel_database',
     'staffing_status',
-    'organizational_structure'
+    'organizational_structure',
+    'person_detail',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

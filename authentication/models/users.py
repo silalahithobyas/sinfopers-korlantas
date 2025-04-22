@@ -1,4 +1,4 @@
-# Update authentication/models/users.py
+# authentication/models/users.py
 
 import uuid
 from django.utils.translation import gettext_lazy as _

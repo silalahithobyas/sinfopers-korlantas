@@ -1,4 +1,4 @@
-# Add this to authentication/models/roles.py
+# authentication/models/roles.py
 
 import uuid
 from django.db import models
