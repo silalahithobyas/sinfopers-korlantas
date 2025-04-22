@@ -1,3 +1,4 @@
+#  authentication/models/custom_user.py
 from authentication.models import AuthUser
 from rest_framework.authentication import BaseAuthentication
 
