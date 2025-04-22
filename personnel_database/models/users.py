@@ -1,3 +1,4 @@
+# personnel_database/models/users.py
 import enum
 import uuid
 

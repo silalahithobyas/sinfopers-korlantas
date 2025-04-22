@@ -1,3 +1,4 @@
+# staffing_status/models.py
 from django.db import models
 from personnel_database.models.subsatker import SubSatKer
 from personnel_database.models.pangkat import Pangkat

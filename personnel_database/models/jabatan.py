@@ -1,3 +1,4 @@
+# personnel_database/models/jabatan.py
 from django.db import models
 
 from authentication.models.base import BaseModel
