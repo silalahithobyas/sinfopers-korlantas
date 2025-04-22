@@ -19,3 +19,6 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
+### **Diagram Database**
+
+![diagram_database.png](diagram_database.png)
