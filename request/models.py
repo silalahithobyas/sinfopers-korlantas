@@ -5,6 +5,7 @@ from django.conf import settings
 class CutiRequest(models.Model):
     requestId = models.AutoField(primary_key=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    tanggalPengajuan = models.DateField(auto_now_add=True)
     tanggalMulai = models.DateField()
     tanggalSelesai = models.DateField()
     alasan = models.TextField()
