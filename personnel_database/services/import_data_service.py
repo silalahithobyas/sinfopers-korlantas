@@ -9,6 +9,7 @@ from personnel_database.models.subdit import SubDit
 from personnel_database.models.subsatker import SubSatKer
 from personnel_database.models.pangkat import Pangkat
 from personnel_database.models.jabatan import Jabatan
+from personnel_database.models.users import UserPersonil
 from staffing_status.models import StaffingStatus
 
 class ImportDataService(ABC):
@@ -16,7 +17,7 @@ class ImportDataService(ABC):
     @classmethod
     def import_data(cls, file, jenis) :
         if(jenis == None) :
-            raise BadRequestException("Please insert type of data (subdit, jabatan, subsatker, pangkat, staffing status) in query parameter")
+            raise BadRequestException("Please insert type of data (personil, subdit, jabatan, subsatker, pangkat, staffing status) in query parameter")
 
         if(file.content_type != "text/csv") :
             raise BadRequestException("Please insert csv file.")
@@ -32,6 +33,8 @@ class ImportDataService(ABC):
             cls.import_data_staffing_status(spamreader)
         elif jenis == "jabatan" :
             cls.import_data_jabatan(spamreader)
+        elif jenis == "personil" :
+            return cls.import_data_personil(spamreader)
         else :
             raise BadRequestException(f"Jenis {jenis} not exists.")
 
@@ -129,3 +132,103 @@ class ImportDataService(ABC):
             if(not staffing_pangkat) :
                 raise BadRequestException(f"Staffing Status {i.nama} not exists.")
             i.pangkat.add(*staffing_pangkat)
+    
+    @classmethod
+    @transaction.atomic
+    def import_data_personil(cls, spamreader):
+        # Dictionary untuk menyimpan data master
+        pangkat_dict = {p.nama: p for p in Pangkat.objects.all()}
+        subdit_dict = {s.nama: s for s in SubDit.objects.all()}
+        subsatker_dict = {s.nama: s for s in SubSatKer.objects.all()}
+        jabatan_dict = {j.nama: j for j in Jabatan.objects.all()}
+        
+        # Statistik import
+        results = {
+            "total": 0,
+            "success": 0,
+            "failed": 0,
+            "errors": []
+        }
+        
+        # Cek kolom wajib
+        required_columns = ["NAMA", "NRP", "PANGKAT", "JABATAN", "JENIS_KELAMIN", "SUBSATKER", "SUBDIT", "BKO", "STATUS"]
+        for col in required_columns:
+            if col not in spamreader.columns:
+                raise BadRequestException(f"Missing required column: {col}")
+        
+        # Proses setiap baris
+        for idx, row in spamreader.iterrows():
+            results["total"] += 1
+            try:
+                # Validasi NRP
+                try:
+                    nrp = int(row["NRP"])
+                except (ValueError, TypeError):
+                    raise BadRequestException(f"NRP harus berupa angka: {row['NRP']}")
+                
+                # Validasi referensi
+                pangkat_nama = row["PANGKAT"]
+                if pangkat_nama not in pangkat_dict:
+                    raise BadRequestException(f"Pangkat tidak ditemukan: {pangkat_nama}")
+                
+                subdit_nama = row["SUBDIT"]
+                if subdit_nama not in subdit_dict:
+                    raise BadRequestException(f"Subdit tidak ditemukan: {subdit_nama}")
+                
+                subsatker_nama = row["SUBSATKER"]
+                if subsatker_nama not in subsatker_dict:
+                    raise BadRequestException(f"Subsatker tidak ditemukan: {subsatker_nama}")
+                
+                jabatan_nama = row["JABATAN"]
+                if jabatan_nama not in jabatan_dict:
+                    raise BadRequestException(f"Jabatan tidak ditemukan: {jabatan_nama}")
+                
+                # Validasi enum
+                jenis_kelamin = row["JENIS_KELAMIN"]
+                if jenis_kelamin not in ["L", "P"]:
+                    raise BadRequestException(f"Jenis Kelamin harus L atau P: {jenis_kelamin}")
+                
+                status = row["STATUS"]
+                if status not in ["Aktif", "Non Aktif", "Cuti", "Pensiun"]:
+                    raise BadRequestException(f"Status tidak valid: {status}")
+                
+                bko = row["BKO"]
+                valid_bko = ["Gasus masuk", "Gasum masuk", "Gasus keluar", "Gasum keluar", "-"]
+                if bko not in valid_bko:
+                    raise BadRequestException(f"BKO tidak valid: {bko}")
+                
+                # Cek apakah NRP sudah ada
+                if UserPersonil.objects.filter(nrp=nrp).exists():
+                    # Update jika NRP sudah ada
+                    personil = UserPersonil.objects.get(nrp=nrp)
+                    personil.nama = row["NAMA"]
+                    personil.pangkat = pangkat_dict[pangkat_nama]
+                    personil.jabatan = jabatan_dict[jabatan_nama]
+                    personil.jenis_kelamin = jenis_kelamin
+                    personil.subsatker = subsatker_dict[subsatker_nama]
+                    personil.subdit = subdit_dict[subdit_nama]
+                    personil.bko = bko
+                    personil.status = status
+                    personil.save()
+                else:
+                    # Buat baru jika NRP belum ada
+                    UserPersonil.objects.create(
+                        nama=row["NAMA"],
+                        nrp=nrp,
+                        pangkat=pangkat_dict[pangkat_nama],
+                        jabatan=jabatan_dict[jabatan_nama],
+                        jenis_kelamin=jenis_kelamin,
+                        subsatker=subsatker_dict[subsatker_nama],
+                        subdit=subdit_dict[subdit_nama],
+                        bko=bko,
+                        status=status
+                    )
+                
+                results["success"] += 1
+                
+            except Exception as e:
+                results["failed"] += 1
+                error_message = f"Error pada baris {idx+2}: {str(e)}"
+                results["errors"].append(error_message)
+        
+        return results
