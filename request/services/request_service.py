@@ -21,8 +21,8 @@ class RequestService:
             'tanggal_pengajuan',
             'status'
         )
-        for req in cuti_requests:
-            req['jenis'] = 'cuti'
+        for req in mutasi_requests:
+            req['jenis'] = 'mutasi'
             req['tanggal'] = req.pop('tanggal_pengajuan')
         
         # Gabungkan dan urutkan
