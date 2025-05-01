@@ -6,6 +6,7 @@ import logging
 from django.core.validators import MaxValueValidator
 from django.db import models
 from django.db.models import Q
+from django.db.utils import IntegrityError
 
 from authentication.models.base import BaseModel
 from personnel_database.models.pangkat import Pangkat
@@ -53,7 +54,7 @@ class UserPersonil(BaseModel) :
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True)
     nama = models.CharField(max_length=120)
     pangkat = models.ForeignKey(Pangkat, on_delete=models.CASCADE)
-    nrp = models.IntegerField(validators=[MaxValueValidator(99999999)])
+    nrp = models.IntegerField(validators=[MaxValueValidator(99999999)], unique=True, error_messages={'unique': 'NRP sudah digunakan oleh personel lain.'})
     jabatan = models.ForeignKey(Jabatan, on_delete=models.CASCADE)
     jenis_kelamin = models.CharField(max_length=12, choices=JenisKelamin.choices())
     subsatker = models.ForeignKey(SubSatKer, on_delete=models.CASCADE)
@@ -66,6 +67,14 @@ class UserPersonil(BaseModel) :
 
     def save(self, *args, **kwargs) :
         logger.info(f"[DEBUG] Attempting to save personnel with pangkat_id: {self.pangkat_id}, subsatker_id: {self.subsatker_id}")
+        
+        # Cek apakah NRP sudah digunakan (untuk menghasilkan pesan error yang lebih baik)
+        if not self.id:  # Jika ini adalah objek baru, bukan update
+            existing_nrp = UserPersonil.objects.filter(nrp=self.nrp).exists()
+            if existing_nrp:
+                error_msg = f"NRP {self.nrp} sudah digunakan oleh personel lain."
+                logger.error(f"[DEBUG] {error_msg}")
+                raise BadRequestException(error_msg)
         
         staffing_status = StaffingStatus.objects.filter(
             Q(subsatker=self.subsatker) & Q(pangkat=self.pangkat)
@@ -87,7 +96,22 @@ class UserPersonil(BaseModel) :
             logger.info("[DEBUG] Successfully updated staffing status")
             super(UserPersonil, self).save(*args, **kwargs)
             logger.info("[DEBUG] Successfully saved personnel")
+        except IntegrityError as e:
+            # Rollback staffing_status increment karena penyimpanan gagal
+            staffing_status.rill = staffing_status.rill - 1
+            staffing_status.save()
+            
+            if "unique constraint" in str(e).lower() and "nrp" in str(e).lower():
+                error_msg = f"NRP {self.nrp} sudah digunakan oleh personel lain."
+                logger.error(f"[DEBUG] {error_msg}")
+                raise BadRequestException(error_msg)
+            logger.error(f"[DEBUG] Error saving: {str(e)}")
+            raise
         except Exception as e:
+            # Rollback staffing_status increment karena penyimpanan gagal
+            staffing_status.rill = staffing_status.rill - 1
+            staffing_status.save()
+            
             logger.error(f"[DEBUG] Error saving: {str(e)}")
             raise
 
@@ -117,3 +141,7 @@ class UserPersonil(BaseModel) :
         except Exception as e:
             logger.error(f"[DEBUG] Error deleting: {str(e)}")
             raise
+            
+    class Meta:
+        verbose_name = "Personel"
+        verbose_name_plural = "Personel"
