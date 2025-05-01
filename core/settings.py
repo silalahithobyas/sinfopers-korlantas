@@ -74,7 +74,7 @@ LOCAL_APPS = [
     'person_detail',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + ['permohonan']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

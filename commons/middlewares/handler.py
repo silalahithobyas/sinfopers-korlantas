@@ -1,20 +1,31 @@
 from rest_framework.views import exception_handler
-from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 
 def custom_exception_handler(exc, context):
+    """
+    Custom exception handler untuk REST Framework.
+    """
+    # Panggil handler default dulu
     response = exception_handler(exc, context)
-    
-    if isinstance(exc, (AuthenticationFailed, NotAuthenticated)):
-        custom_response = {
+
+    # Jika response adalah None, berarti exception tidak ditangani oleh DRF
+    if response is None:
+        return Response(
+            {
+                "success": False,
+                "message": str(exc),
+                "data": None
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    # Jika response sudah ada, tambahkan format success, message, data
+    return Response(
+        {
             "success": False,
-            "message": exc.detail if hasattr(exc, 'detail') else 'An error occurred',
-            "data": None
-        }
-
-        if(isinstance(exc.detail, dict)) :
-            message = exc.detail.get('detail')
-            custom_response['message'] = message if message else 'An error occurred'
-            
-        response.data = custom_response
-
-    return response
+            "message": str(exc),
+            "data": response.data if hasattr(response, 'data') else None
+        },
+        status=response.status_code
+    )
