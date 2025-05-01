@@ -1,6 +1,7 @@
 # personnel_database/models/users.py
 import enum
 import uuid
+import logging
 
 from django.core.validators import MaxValueValidator
 from django.db import models
@@ -15,6 +16,8 @@ from personnel_database.models.jabatan import Jabatan
 from staffing_status.models import StaffingStatus
 
 from commons.middlewares.exception import BadRequestException
+
+logger = logging.getLogger('general')
 
 class UserPersonil(BaseModel) :
 
@@ -62,19 +65,55 @@ class UserPersonil(BaseModel) :
         return self.nama
 
     def save(self, *args, **kwargs) :
-        staffing_status = StaffingStatus.objects.filter(Q(subsatker=self.subsatker) & Q(pangkat=self.pangkat)).first()
-        if(not staffing_status) :
-            raise BadRequestException("Failed to add User Personnel: Please ensure that the staffing status is added before attempting to add personnel.")
+        logger.info(f"[DEBUG] Attempting to save personnel with pangkat_id: {self.pangkat_id}, subsatker_id: {self.subsatker_id}")
         
+        staffing_status = StaffingStatus.objects.filter(
+            Q(subsatker=self.subsatker) & Q(pangkat=self.pangkat)
+        ).first()
+        
+        logger.info(f"[DEBUG] Found staffing status: {staffing_status}")
+        
+        if not staffing_status:
+            error_msg = f"Failed to add User Personnel: No staffing status found for pangkat_id={self.pangkat_id} and subsatker_id={self.subsatker_id}"
+            logger.error(f"[DEBUG] {error_msg}")
+            raise BadRequestException(error_msg)
+        
+        logger.info(f"[DEBUG] Current rill value: {staffing_status.rill}")
         staffing_status.rill = staffing_status.rill + 1
-        staffing_status.save()
-        super(UserPersonil, self).save(*args, **kwargs)
+        logger.info(f"[DEBUG] New rill value: {staffing_status.rill}")
+        
+        try:
+            staffing_status.save()
+            logger.info("[DEBUG] Successfully updated staffing status")
+            super(UserPersonil, self).save(*args, **kwargs)
+            logger.info("[DEBUG] Successfully saved personnel")
+        except Exception as e:
+            logger.error(f"[DEBUG] Error saving: {str(e)}")
+            raise
 
     def delete(self, *args, **kwargs) :
-        staffing_status = StaffingStatus.objects.filter(Q(subsatker=self.subsatker) & Q(pangkat=self.pangkat)).first()
-        if(not staffing_status) :
-            raise BadRequestException("Failed to delete User Personnel: Please ensure that the staffing status is added before attempting to delete personnel.")
+        logger.info(f"[DEBUG] Attempting to delete personnel with pangkat_id: {self.pangkat_id}, subsatker_id: {self.subsatker_id}")
+        
+        staffing_status = StaffingStatus.objects.filter(
+            Q(subsatker=self.subsatker) & Q(pangkat=self.pangkat)
+        ).first()
+        
+        logger.info(f"[DEBUG] Found staffing status: {staffing_status}")
+        
+        if not staffing_status:
+            error_msg = f"Failed to delete User Personnel: No staffing status found for pangkat_id={self.pangkat_id} and subsatker_id={self.subsatker_id}"
+            logger.error(f"[DEBUG] {error_msg}")
+            raise BadRequestException(error_msg)
 
+        logger.info(f"[DEBUG] Current rill value: {staffing_status.rill}")
         staffing_status.rill = staffing_status.rill - 1
-        staffing_status.save()
-        super(UserPersonil, self).delete(*args, **kwargs)
+        logger.info(f"[DEBUG] New rill value: {staffing_status.rill}")
+        
+        try:
+            staffing_status.save()
+            logger.info("[DEBUG] Successfully updated staffing status")
+            super(UserPersonil, self).delete(*args, **kwargs)
+            logger.info("[DEBUG] Successfully deleted personnel")
+        except Exception as e:
+            logger.error(f"[DEBUG] Error deleting: {str(e)}")
+            raise

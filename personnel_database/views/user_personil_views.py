@@ -1,4 +1,5 @@
 import csv
+import logging
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
@@ -15,6 +16,8 @@ from commons.middlewares.exception import APIException
 from personnel_database.serializers.user_personil_serializer import UserPersonilSerializer, UserPersonilPaginationSerializer, UpdateUserPersonilSerializer
 from personnel_database.services.user_personil_service import UserPersonilService
 
+logger = logging.getLogger('general')
+
 class PersonilView(APIView) :
     permission_classes = [IsAuthenticated,]
     
@@ -26,15 +29,28 @@ class PersonilView(APIView) :
 
     def post(self, request) :
         try :
+            logger.info(f"[DEBUG] Received POST request with data: {request.data}")
+            
             serializer = self.serializer(data=request.data)
             if(not serializer.is_valid()) :
+                logger.error(f"[DEBUG] Serializer validation errors: {serializer.errors}")
                 return Response(serializer_error_response(serializer.errors), status.HTTP_400_BAD_REQUEST)
-            user = self.service.add_personil(**serializer.data)
-            serializer_data = self.serializer(user).data
-            return Response(prepare_success_response(serializer_data), status.HTTP_201_CREATED)
+            
+            logger.info(f"[DEBUG] Validated data: {serializer.validated_data}")
+            
+            try :
+                user = self.service.add_personil(**serializer.data)
+                logger.info(f"[DEBUG] Successfully created personnel with ID: {user.id}")
+                serializer_data = self.serializer(user).data
+                return Response(prepare_success_response(serializer_data), status.HTTP_201_CREATED)
+            except Exception as e :
+                logger.error(f"[DEBUG] Error in service.add_personil: {str(e)}")
+                raise
         except APIException as e :
+            logger.error(f"[DEBUG] API Exception: {str(e)}")
             return Response(prepare_error_response(str(e)), e.status_code)
         except Exception as e :
+            logger.error(f"[DEBUG] Unexpected error: {str(e)}")
             return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     
