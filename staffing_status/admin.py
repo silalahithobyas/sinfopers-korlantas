@@ -11,6 +11,7 @@ class StaffingStatusForm(forms.ModelForm):
             'nama': 'Nama status kepegawaian (misalnya: "Status Pangkat Akpol", "Bidang Humas")',
             'subsatker': 'Pilih sub-satuan kerja terkait',
             'pangkat': 'Pilih pangkat terkait (bisa memilih lebih dari satu)',
+            'dsp': 'Jumlah personel yang seharusnya mengisi posisi ini',
         }
         widgets = {
             'pangkat': forms.SelectMultiple(attrs={'size': '5'}),
@@ -21,6 +22,7 @@ class StaffingStatusAdmin(admin.ModelAdmin):
     list_display = ('nama', 'subsatker', 'get_pangkat', 'dsp', 'rill', 'status_kepegawaian')
     search_fields = ('nama', 'subsatker__nama')
     list_filter = ('subsatker', 'pangkat')
+    readonly_fields = ('rill',)
     
     fieldsets = (
         ('Informasi Umum', {
@@ -32,8 +34,9 @@ class StaffingStatusAdmin(admin.ModelAdmin):
             'description': format_html(
                 '<div style="margin-bottom:10px;">'
                 '<p><strong>DSP (Daftar Susunan Personel)</strong>: Jumlah personel yang seharusnya/idealnya mengisi posisi ini.</p>'
-                '<p><strong>Riil</strong>: Jumlah personel aktual yang saat ini mengisi posisi ini.</p>'
-                '<p style="color:#666;"><i>Catatan: Nilai Riil akan bertambah otomatis saat personel baru ditambahkan dan berkurang '
+                '<p><strong>Riil</strong>: Jumlah personel aktual yang saat ini mengisi posisi ini. '
+                '<span style="color:#c00"><b>Catatan:</b> Nilai ini otomatis dihitung dan tidak perlu diubah manual.</span></p>'
+                '<p style="color:#666;"><i>Nilai Riil akan bertambah otomatis saat personel baru ditambahkan dan berkurang '
                 'saat personel dihapus dari sistem dengan kombinasi pangkat dan subsatker yang sama.</i></p>'
                 '</div>'
             )
@@ -54,6 +57,8 @@ class StaffingStatusAdmin(admin.ModelAdmin):
     status_kepegawaian.short_description = 'Status'
     
     def save_model(self, request, obj, form, change):
+        if not change:  # Jika ini adalah entri baru
+            obj.rill = 0  # Set default rill ke 0
         super().save_model(request, obj, form, change)
         if not change:  # Jika ini adalah data baru
             self.message_user(
