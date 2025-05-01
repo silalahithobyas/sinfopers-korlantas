@@ -107,6 +107,15 @@ class PermohonanViewSet(viewsets.ModelViewSet):
             if request.data.get('status') == 'disetujui':
                 serializer.save(status=Permohonan.StatusPermohonan.DISETUJUI)
             elif request.data.get('status') == 'ditolak':
+                # Pastikan catatan pimpinan diisi jika ditolak
+                if not request.data.get('catatan_pimpinan'):
+                    return Response({
+                        "success": False,
+                        "message": "Review pimpinan gagal",
+                        "errors": {
+                            "catatan_pimpinan": ["Catatan wajib diisi jika permohonan ditolak."]
+                        }
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 serializer.save(status=Permohonan.StatusPermohonan.DITOLAK)
             else:
                 return Response(

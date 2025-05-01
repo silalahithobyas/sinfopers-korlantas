@@ -50,4 +50,12 @@ class PermohonanPimpinanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Permohonan
         fields = ['id', 'status', 'catatan_pimpinan']
-        read_only_fields = ['id'] 
+        read_only_fields = ['id']
+        
+    def validate(self, data):
+        # Jika status 'ditolak', catatan_pimpinan harus diisi
+        if data.get('status') == 'ditolak' and not data.get('catatan_pimpinan'):
+            raise serializers.ValidationError({
+                "catatan_pimpinan": "Catatan Pimpinan wajib diisi jika permohonan ditolak"
+            })
+        return data 
