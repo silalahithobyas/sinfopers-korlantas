@@ -28,9 +28,9 @@ class PermohonanViewSet(viewsets.ModelViewSet):
         elif user.role == AuthUser.HR:
             return Permohonan.objects.filter(status=Permohonan.StatusPermohonan.PENDING_HR)
         
-        # Pimpinan melihat permohonan dengan status pending_pimpinan
+        # Pimpinan melihat permohonan dengan status valid (sudah divalidasi HR)
         elif user.role == AuthUser.PIMPINAN:
-            return Permohonan.objects.filter(status=Permohonan.StatusPermohonan.PENDING_PIMPINAN)
+            return Permohonan.objects.filter(status=Permohonan.StatusPermohonan.VALID)
         
         # Admin melihat semua permohonan
         elif user.is_staff or user.is_superuser:
@@ -60,33 +60,68 @@ class PermohonanViewSet(viewsets.ModelViewSet):
         # Hanya bisa mereview jika status pending_hr
         if permohonan.status != Permohonan.StatusPermohonan.PENDING_HR:
             return Response(
-                {"detail": "Hanya bisa mereview permohonan dengan status menunggu persetujuan HR"},
+                {"detail": "Hanya bisa mereview permohonan dengan status menunggu validasi HR"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         serializer = PermohonanHRSerializer(permohonan, data=request.data, partial=True)
         if serializer.is_valid():
-            # Jika disetujui HR, ubah status ke pending_pimpinan
-            if request.data.get('status') == 'disetujui':
-                serializer.save(status=Permohonan.StatusPermohonan.PENDING_PIMPINAN)
+            # Validasi status
+            if request.data.get('status') == 'valid':
+                # Jika valid, ubah status ke valid (menunggu pimpinan)
+                serializer.save(status=Permohonan.StatusPermohonan.VALID)
+            elif request.data.get('status') == 'tidak_valid':
+                # Jika tidak valid, simpan dengan status tidak valid
+                serializer.save(status=Permohonan.StatusPermohonan.TIDAK_VALID)
             else:
-                serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Status harus valid atau tidak_valid"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            return Response({
+                "success": True,
+                "message": "Validasi permohonan berhasil",
+                "data": serializer.data
+            })
+            
+        return Response({
+            "success": False,
+            "message": "Validasi permohonan gagal",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'], url_path='pimpinan-review')
     def pimpinan_review(self, request, pk=None):
         permohonan = self.get_object()
         
-        # Hanya bisa mereview jika status pending_pimpinan
-        if permohonan.status != Permohonan.StatusPermohonan.PENDING_PIMPINAN:
+        # Hanya bisa mereview jika status valid (sudah divalidasi HR)
+        if permohonan.status != Permohonan.StatusPermohonan.VALID:
             return Response(
-                {"detail": "Hanya bisa mereview permohonan dengan status menunggu persetujuan Pimpinan"},
+                {"detail": "Hanya bisa mereview permohonan yang sudah divalidasi HR"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         serializer = PermohonanPimpinanSerializer(permohonan, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            if request.data.get('status') == 'disetujui':
+                serializer.save(status=Permohonan.StatusPermohonan.DISETUJUI)
+            elif request.data.get('status') == 'ditolak':
+                serializer.save(status=Permohonan.StatusPermohonan.DITOLAK)
+            else:
+                return Response(
+                    {"detail": "Status harus disetujui atau ditolak"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            return Response({
+                "success": True,
+                "message": "Review pimpinan berhasil",
+                "data": serializer.data
+            })
+            
+        return Response({
+            "success": False,
+            "message": "Review pimpinan gagal",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)

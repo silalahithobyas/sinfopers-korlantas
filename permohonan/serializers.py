@@ -37,6 +37,14 @@ class PermohonanHRSerializer(serializers.ModelSerializer):
         model = Permohonan
         fields = ['id', 'status', 'catatan_hr']
         read_only_fields = ['id']
+        
+    def validate(self, data):
+        # Jika status 'tidak_valid', catatan_hr harus diisi
+        if data.get('status') == 'tidak_valid' and not data.get('catatan_hr'):
+            raise serializers.ValidationError({
+                "catatan_hr": "Catatan HR wajib diisi jika status Tidak Valid"
+            })
+        return data
 
 class PermohonanPimpinanSerializer(serializers.ModelSerializer):
     class Meta:

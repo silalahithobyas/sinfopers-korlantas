@@ -9,8 +9,9 @@ class Permohonan(BaseModel):
         MUTASI = 'Mutasi', 'Mutasi'
 
     class StatusPermohonan(models.TextChoices):
-        PENDING_HR = 'pending_hr', 'Menunggu Persetujuan HR'
-        PENDING_PIMPINAN = 'pending_pimpinan', 'Menunggu Persetujuan Pimpinan'
+        PENDING_HR = 'pending_hr', 'Menunggu Validasi HR'
+        VALID = 'valid', 'Valid - Menunggu Persetujuan Pimpinan'
+        TIDAK_VALID = 'tidak_valid', 'Tidak Valid - Dikembalikan ke Personel'
         DISETUJUI = 'disetujui', 'Disetujui'
         DITOLAK = 'ditolak', 'Ditolak'
 
