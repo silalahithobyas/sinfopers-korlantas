@@ -59,9 +59,44 @@ class OrganizationalStructureService(ABC):
         if(not personnel) :
             raise BadRequestException(f"Personnel with id {personnel_id} not exists.")
         
+        # Cari chart yang memiliki node ini
+        charts = Chart.objects.filter(nodes__id=nodes_id)
+        if charts.exists():
+            chart = charts.first()
+            
+            # Jika personnel yang akan diupdate berbeda dengan personnel saat ini
+            if str(nodes.personnel.id) != personnel_id:
+                # Validasi untuk mencegah duplikasi anggota dalam struktur yang sama
+                if cls._is_personnel_exists_in_chart(chart, personnel_id):
+                    raise BadRequestException(f"Personnel with id {personnel_id} already exists in this organizational structure.")
+        
         nodes.personnel = personnel
         nodes.save()
         return nodes
+
+    @classmethod
+    def _is_personnel_exists_in_chart(cls, chart, personnel_id):
+        """
+        Memeriksa apakah personnel sudah ada dalam struktur divisi
+        """
+        def check_node_tree(node):
+            if node.personnel and str(node.personnel.id) == personnel_id:
+                return True
+            
+            # Cek di semua child nodes
+            for child in node.child.all():
+                if check_node_tree(child):
+                    return True
+            
+            # Cek di semua child offset nodes
+            for child_offset in node.child_offsets.all():
+                if check_node_tree(child_offset):
+                    return True
+            
+            return False
+        
+        # Mulai pemeriksaan dari root node
+        return check_node_tree(chart.nodes)
 
     @classmethod
     @transaction.atomic
@@ -77,8 +112,12 @@ class OrganizationalStructureService(ABC):
         if(not personnel) :
             raise BadRequestException(f"Personnel with id {personnel_id} not exists.")
         
-        
         chart = cls.get_chart(chart_id)
+        
+        # Validasi untuk mencegah duplikasi anggota dalam struktur yang sama
+        if cls._is_personnel_exists_in_chart(chart, personnel_id):
+            raise BadRequestException(f"Personnel with id {personnel_id} already exists in this organizational structure.")
+        
         child_node = Nodes.objects.create(**data, personnel=personnel)
         parent_node.child.add(child_node)
 
@@ -98,8 +137,12 @@ class OrganizationalStructureService(ABC):
         if(not personnel) :
             raise BadRequestException(f"Personnel with id {personnel_id} not exists.")
         
-        
         chart = cls.get_chart(chart_id)
+        
+        # Validasi untuk mencegah duplikasi anggota dalam struktur yang sama
+        if cls._is_personnel_exists_in_chart(chart, personnel_id):
+            raise BadRequestException(f"Personnel with id {personnel_id} already exists in this organizational structure.")
+        
         child_node = Nodes.objects.create(**data, personnel=personnel)
         parent_node.child_offsets.add(child_node)
 
