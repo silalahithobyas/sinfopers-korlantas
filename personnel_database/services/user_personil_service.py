@@ -10,12 +10,13 @@ from openpyxl import Workbook
 import xlsxwriter
 
 
-from commons.middlewares.exception import NotFoundException
+from commons.middlewares.exception import NotFoundException, BadRequestException
 from commons.applibs.pagination import pagination
 
 from personnel_database.models.users import UserPersonil
 from personnel_database.serializers.user_personil_serializer import UserPersonilSerializer
 from staffing_status.models import StaffingStatus
+from organizational_structure.models import Nodes
 
 class UserPersonilService(ABC):
     
@@ -42,6 +43,11 @@ class UserPersonilService(ABC):
     @classmethod
     def delete_personil(cls, personil_id) :
         personil = cls.get_personil_by_id(personil_id)
+        
+        # Periksa apakah personil terdaftar dalam struktur divisi
+        nodes = Nodes.objects.filter(personnel_id=personil_id).exists()
+        if nodes:
+            raise BadRequestException(f"Personil with id {personil_id} is registered in an organizational structure and cannot be deleted.")
 
         personil.delete()
         return personil
