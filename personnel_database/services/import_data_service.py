@@ -197,19 +197,9 @@ class ImportDataService(ABC):
                 if bko not in valid_bko:
                     raise BadRequestException(f"BKO tidak valid: {bko}")
                 
-                # Cek apakah NRP sudah ada
+                # Cek apakah NRP sudah ada - tolak jika sudah ada
                 if UserPersonil.objects.filter(nrp=nrp).exists():
-                    # Update jika NRP sudah ada
-                    personil = UserPersonil.objects.get(nrp=nrp)
-                    personil.nama = row["NAMA"]
-                    personil.pangkat = pangkat_dict[pangkat_nama]
-                    personil.jabatan = jabatan_dict[jabatan_nama]
-                    personil.jenis_kelamin = jenis_kelamin
-                    personil.subsatker = subsatker_dict[subsatker_nama]
-                    personil.subdit = subdit_dict[subdit_nama]
-                    personil.bko = bko
-                    personil.status = status
-                    personil.save()
+                    raise BadRequestException(f"NRP {nrp} sudah terdaftar. Duplikasi NRP tidak diperbolehkan.")
                 else:
                     # Buat baru jika NRP belum ada
                     UserPersonil.objects.create(
