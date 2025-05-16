@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from commons.applibs.response import prepare_success_response, prepare_error_response, serializer_error_response
 from commons.middlewares.exception import APIException
 from commons.middlewares.permissions import IsAdmin, IsHR
-from authentication.serializers.user_serializer import UserSerializer, UserCreateSerializer
+from authentication.serializers.user_serializer import UserSerializer, UserCreateSerializer, ChangePasswordSerializer
 from authentication.models.users import AuthUser
 
 logger = logging.getLogger('general')
@@ -120,3 +120,16 @@ class UserDetailView(APIView):
         except Exception as e:
             logger.error(f"Error deleting user: {str(e)}")
             return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            return Response(serializer_error_response(serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+        return Response(prepare_success_response({"message": "Password berhasil diubah."}), status=status.HTTP_200_OK)
