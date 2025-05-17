@@ -57,11 +57,13 @@ class UserPersonil(BaseModel) :
     nrp = models.IntegerField(validators=[MaxValueValidator(99999999)], unique=True, error_messages={'unique': 'NRP sudah digunakan oleh personel lain.'})
     jabatan = models.ForeignKey(Jabatan, on_delete=models.CASCADE)
     jenis_kelamin = models.CharField(max_length=12, choices=JenisKelamin.choices())
+    status = models.CharField(max_length=12, choices=Status.choices(), default=Status.AKTIF.value)
     subsatker = models.ForeignKey(SubSatKer, on_delete=models.CASCADE)
     subdit = models.ForeignKey(SubDit, on_delete=models.CASCADE)
-    bko = models.CharField(max_length=12, choices=BKO.choices())
-    status = models.CharField(max_length=20, choices=Status.choices())
-
+    bko = models.CharField(max_length=20, choices=BKO.choices(), default=BKO.NOT_GASUS.value)
+    # Tambahkan relasi ke AuthUser
+    user = models.OneToOneField('authentication.AuthUser', on_delete=models.SET_NULL, null=True, blank=True, related_name='personil')
+    
     def __str__(self) :
         return self.nama
 

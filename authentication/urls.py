@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from authentication.views.user_view import UserLogin
 from authentication.views.user_management import UserManagementView, UserDetailView
+from authentication.views.user_personil_management import UserPersonilManagementView
 
 urlpatterns = [
     path('login/', UserLogin.as_view()),
@@ -13,4 +14,7 @@ urlpatterns = [
     # User management endpoints
     path('users/', UserManagementView.as_view()),
     path('users/<uuid:user_id>/', UserDetailView.as_view()),
+    
+    # User-Personil combined endpoint
+    path('users-personil/', UserPersonilManagementView.as_view()),
 ]
