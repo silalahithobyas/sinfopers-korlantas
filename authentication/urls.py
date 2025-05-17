@@ -4,7 +4,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from authentication.views.user_view import UserLogin
-from authentication.views.user_management import UserManagementView, UserDetailView
+from authentication.views.user_management import UserManagementView, UserDetailView, UserDetailWithPersonilView
 from authentication.views.user_personil_management import UserPersonilManagementView
 
 urlpatterns = [
@@ -14,6 +14,9 @@ urlpatterns = [
     # User management endpoints
     path('users/', UserManagementView.as_view()),
     path('users/<uuid:user_id>/', UserDetailView.as_view()),
+    
+    # User detail with personil endpoint
+    path('users/<uuid:user_id>/with-personil/', UserDetailWithPersonilView.as_view()),
     
     # User-Personil combined endpoint
     path('users-personil/', UserPersonilManagementView.as_view()),

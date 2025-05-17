@@ -12,6 +12,8 @@ from commons.middlewares.exception import APIException
 from commons.middlewares.permissions import IsAdmin, IsHR
 from authentication.serializers.user_serializer import UserSerializer, UserCreateSerializer
 from authentication.models.users import AuthUser
+from personnel_database.models.users import UserPersonil
+from personnel_database.serializers.user_personil_serializer import UserPersonilSerializer
 
 logger = logging.getLogger('general')
 
@@ -119,4 +121,49 @@ class UserDetailView(APIView):
 
         except Exception as e:
             logger.error(f"Error deleting user: {str(e)}")
+            return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UserDetailWithPersonilView(APIView):
+    """
+    View for getting detailed information about a user including linked personil data (if any)
+    Only accessible by Admin and HR roles
+    """
+    permission_classes = [IsAuthenticated, IsAdmin | IsHR]
+
+    def get_user(self, user_id):
+        try:
+            return AuthUser.objects.get(id=user_id)
+        except AuthUser.DoesNotExist:
+            raise APIException("User not found", status_code=status.HTTP_404_NOT_FOUND)
+
+    def get(self, request, user_id):
+        """Get a specific user with personil data (if linked)"""
+        try:
+            user = self.get_user(user_id)
+            user_data = UserSerializer(user).data
+
+            # Try to find linked personil data
+            try:
+                personil = UserPersonil.objects.get(user=user)
+                personil_data = UserPersonilSerializer(personil).data
+                has_personil = True
+            except UserPersonil.DoesNotExist:
+                personil_data = None
+                has_personil = False
+
+            # Prepare combined response
+            response_data = {
+                "user": user_data,
+                "has_personil": has_personil,
+                "personil": personil_data
+            }
+
+            return Response(prepare_success_response(response_data), status.HTTP_200_OK)
+
+        except APIException as e:
+            return Response(prepare_error_response(str(e)), e.status_code)
+
+        except Exception as e:
+            logger.error(f"Error getting user detail with personil: {str(e)}")
             return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
