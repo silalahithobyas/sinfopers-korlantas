@@ -61,8 +61,8 @@ class UserPersonil(BaseModel) :
     subsatker = models.ForeignKey(SubSatKer, on_delete=models.CASCADE)
     subdit = models.ForeignKey(SubDit, on_delete=models.CASCADE)
     bko = models.CharField(max_length=20, choices=BKO.choices(), default=BKO.NOT_GASUS.value)
-    # Tambahkan relasi ke AuthUser
-    user = models.OneToOneField('authentication.AuthUser', on_delete=models.SET_NULL, null=True, blank=True, related_name='personil')
+    # Tetap gunakan null=True untuk migrasi, akan diubah nanti setelah data siap
+    user = models.OneToOneField('authentication.AuthUser', on_delete=models.CASCADE, null=True, blank=False, related_name='personil')
     
     def __str__(self) :
         return self.nama

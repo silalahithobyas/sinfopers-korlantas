@@ -122,13 +122,17 @@ class UserPersonilCreateSerializer(serializers.Serializer):
         # untuk penanganan error yang lebih baik
         try:
             with transaction.atomic():
-                # Cek duplikat username sekali lagi (untuk keamanan) sebelum create
+                # Cek duplikat username dan NRP sekali lagi (untuk keamanan) sebelum create
                 if AuthUser.objects.filter(username=user_data['username']).exists():
-                    raise serializers.ValidationError({"username": "Username sudah digunakan. Silakan pilih username lain."})
+                    raise serializers.ValidationError({
+                        "username": "Username sudah digunakan. Silakan pilih username lain."
+                    })
                 
                 # Cek duplikat NRP sekali lagi
                 if UserPersonil.objects.filter(nrp=personil_data['nrp']).exists():
-                    raise serializers.ValidationError({"nrp": "NRP sudah terdaftar. Silakan periksa kembali data Anda."})
+                    raise serializers.ValidationError({
+                        "nrp": "NRP sudah terdaftar. Silakan periksa kembali data Anda."
+                    })
                 
                 # Log data yang akan dibuat
                 logger.info(f"Creating user with data: {user_data}")

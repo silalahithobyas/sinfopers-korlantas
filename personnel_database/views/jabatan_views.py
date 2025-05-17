@@ -8,7 +8,7 @@ from personnel_database.services.jabatan_service import JabatanService
 
 from commons.applibs.response import prepare_success_response
 
-class JatabanView(APIView) :
+class JabatanView(APIView) :
     permission_classes = [IsAuthenticated,]
     
     def __init__(self) :

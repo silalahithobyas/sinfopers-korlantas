@@ -41,6 +41,13 @@ class UserManagementView(APIView):
 
     def post(self, request):
         """Create a new user with role"""
+        # Cek permission khusus untuk pembuatan user (hanya Admin)
+        if not IsAdmin().has_permission(request, self):
+            return Response(
+                prepare_error_response("Hanya Admin yang bisa membuat user baru."),
+                status.HTTP_403_FORBIDDEN
+            )
+        
         try:
             serializer = UserCreateSerializer(data=request.data)
             if not serializer.is_valid():
@@ -166,4 +173,28 @@ class UserDetailWithPersonilView(APIView):
 
         except Exception as e:
             logger.error(f"Error getting user detail with personil: {str(e)}")
+            return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UnlinkedUsersView(APIView):
+    """
+    View untuk mendapatkan daftar user yang belum terhubung dengan personil
+    Hanya bisa diakses oleh Admin dan HR
+    """
+    permission_classes = [IsAuthenticated, IsAdmin | IsHR]
+
+    def get(self, request):
+        """Get users that are not linked to any personnel"""
+        try:
+            # Filter user yang belum memiliki personil
+            # Menggunakan Django's related objects yang belum terhubung (isnull=True)
+            users = AuthUser.objects.filter(personil__isnull=True, is_active=True)
+            serializer = UserSerializer(users, many=True)
+            return Response(prepare_success_response(serializer.data), status.HTTP_200_OK)
+
+        except APIException as e:
+            return Response(prepare_error_response(str(e)), e.status_code)
+
+        except Exception as e:
+            logger.error(f"Error getting unlinked users: {str(e)}")
             return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)

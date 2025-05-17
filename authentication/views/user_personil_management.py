@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from authentication.permissions import IsAdminOrHR
+from commons.middlewares.permissions import IsAdmin
 from authentication.serializers.user_personil_serializer import UserPersonilCreateSerializer
 from commons.applibs.response import prepare_success_response, prepare_error_response, serializer_error_response
 from commons.middlewares.exception import APIException
@@ -15,7 +15,7 @@ class UserPersonilManagementView(APIView):
     """
     Endpoint untuk mengelola user dan personil secara bersamaan
     """
-    permission_classes = [IsAuthenticated, IsAdminOrHR]
+    permission_classes = [IsAuthenticated, IsAdmin]
     
     def post(self, request):
         """
@@ -31,7 +31,7 @@ class UserPersonilManagementView(APIView):
                     "errors": serializer.errors,
                     "message": "Validasi data gagal"
                 }
-                return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+                return Response(error_response, status.HTTP_400_BAD_REQUEST)
             
             try:
                 result = serializer.save()

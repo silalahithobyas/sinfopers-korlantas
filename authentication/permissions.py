@@ -10,4 +10,16 @@ class IsAdminOrHR(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         
-        return request.user.role in ['admin', 'hr'] 
+        return request.user.role in ['admin', 'hr']
+
+class IsAdmin(BasePermission):
+    """
+    Permission untuk memeriksa apakah user adalah admin
+    """
+    message = "Hanya Admin yang memiliki hak akses untuk melakukan tindakan ini."
+    
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        return request.user.role == 'admin' 
