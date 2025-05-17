@@ -69,40 +69,49 @@ class UserPersonil(BaseModel) :
 
     def save(self, *args, **kwargs) :
         logger.info(f"[DEBUG] Attempting to save personnel with pangkat_id: {self.pangkat_id}, subsatker_id: {self.subsatker_id}")
+        is_new = not self.pk  # Cek apakah ini adalah objek baru (belum memiliki primary key)
         
         # Cek apakah NRP sudah digunakan (untuk menghasilkan pesan error yang lebih baik)
-        if not self.id:  # Jika ini adalah objek baru, bukan update
+        if is_new:  # Jika ini adalah objek baru, bukan update
             existing_nrp = UserPersonil.objects.filter(nrp=self.nrp).exists()
             if existing_nrp:
                 error_msg = f"NRP {self.nrp} sudah digunakan oleh personel lain."
                 logger.error(f"[DEBUG] {error_msg}")
                 raise BadRequestException(error_msg)
-        
-        staffing_status = StaffingStatus.objects.filter(
-            Q(subsatker=self.subsatker) & Q(pangkat=self.pangkat)
-        ).first()
-        
-        logger.info(f"[DEBUG] Found staffing status: {staffing_status}")
-        
-        if not staffing_status:
-            error_msg = f"Failed to add User Personnel: No staffing status found for pangkat_id={self.pangkat_id} and subsatker_id={self.subsatker_id}"
-            logger.error(f"[DEBUG] {error_msg}")
-            raise BadRequestException(error_msg)
-        
-        logger.info(f"[DEBUG] Current rill value: {staffing_status.rill}")
-        staffing_status.rill = staffing_status.rill + 1
-        logger.info(f"[DEBUG] New rill value: {staffing_status.rill}")
+            
+            # Cek StaffingStatus untuk validasi DSP vs rill
+            # Filter StaffingStatus berdasarkan subsatker dan pangkat
+            # Karena pangkat adalah ManyToManyField, kita perlu filter berbeda
+            
+            # Dapatkan semua staffing_status untuk subsatker ini
+            staffing_statuses = StaffingStatus.objects.filter(subsatker=self.subsatker)
+            
+            # Kemudian filter yang berisi pangkat yang kita cari
+            staffing_status = None
+            for status in staffing_statuses:
+                if status.pangkat.filter(id=self.pangkat.id).exists():
+                    staffing_status = status
+                    break
+            
+            logger.info(f"[DEBUG] Found staffing status: {staffing_status}")
+            
+            if not staffing_status:
+                error_msg = f"Failed to add User Personnel: No staffing status found for pangkat_id={self.pangkat_id} and subsatker_id={self.subsatker_id}"
+                logger.error(f"[DEBUG] {error_msg}")
+                raise BadRequestException(error_msg)
+            
+            # Cek apakah jumlah rill sudah mencapai atau melebihi DSP
+            if staffing_status.is_full():
+                error_msg = f"Tidak dapat menambahkan personil baru. Jumlah personil aktual ({staffing_status.rill}) sudah mencapai/melebihi DSP ({staffing_status.dsp}) untuk {staffing_status.nama} di {staffing_status.subsatker.nama}."
+                logger.error(f"[DEBUG] {error_msg}")
+                raise BadRequestException(error_msg)
+            
+            logger.info(f"[DEBUG] Current rill count: {staffing_status.rill}, DSP: {staffing_status.dsp}")
         
         try:
-            staffing_status.save()
-            logger.info("[DEBUG] Successfully updated staffing status")
             super(UserPersonil, self).save(*args, **kwargs)
             logger.info("[DEBUG] Successfully saved personnel")
         except IntegrityError as e:
-            # Rollback staffing_status increment karena penyimpanan gagal
-            staffing_status.rill = staffing_status.rill - 1
-            staffing_status.save()
-            
             if "unique constraint" in str(e).lower() and "nrp" in str(e).lower():
                 error_msg = f"NRP {self.nrp} sudah digunakan oleh personel lain."
                 logger.error(f"[DEBUG] {error_msg}")
@@ -110,34 +119,15 @@ class UserPersonil(BaseModel) :
             logger.error(f"[DEBUG] Error saving: {str(e)}")
             raise
         except Exception as e:
-            # Rollback staffing_status increment karena penyimpanan gagal
-            staffing_status.rill = staffing_status.rill - 1
-            staffing_status.save()
-            
             logger.error(f"[DEBUG] Error saving: {str(e)}")
             raise
 
     def delete(self, *args, **kwargs) :
         logger.info(f"[DEBUG] Attempting to delete personnel with pangkat_id: {self.pangkat_id}, subsatker_id: {self.subsatker_id}")
         
-        staffing_status = StaffingStatus.objects.filter(
-            Q(subsatker=self.subsatker) & Q(pangkat=self.pangkat)
-        ).first()
-        
-        logger.info(f"[DEBUG] Found staffing status: {staffing_status}")
-        
-        if not staffing_status:
-            error_msg = f"Failed to delete User Personnel: No staffing status found for pangkat_id={self.pangkat_id} and subsatker_id={self.subsatker_id}"
-            logger.error(f"[DEBUG] {error_msg}")
-            raise BadRequestException(error_msg)
-
-        logger.info(f"[DEBUG] Current rill value: {staffing_status.rill}")
-        staffing_status.rill = staffing_status.rill - 1
-        logger.info(f"[DEBUG] New rill value: {staffing_status.rill}")
+        # Tidak perlu lagi mengubah nilai rill, karena rill sekarang dihitung dengan property
         
         try:
-            staffing_status.save()
-            logger.info("[DEBUG] Successfully updated staffing status")
             super(UserPersonil, self).delete(*args, **kwargs)
             logger.info("[DEBUG] Successfully deleted personnel")
         except Exception as e:
