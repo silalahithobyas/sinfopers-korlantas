@@ -10,16 +10,17 @@ app_name = 'personnel_database'
 
 urlpatterns = [
     # Endpoint statis harus di atas endpoint dinamis dengan parameter
-    path('personil/', PersonilView.as_view()),
-    path('personil/export/', PersonilExport.as_view()),
-    path('personil/link-to-user/', LinkPersonilToUserView.as_view()),
+    path('', PersonilView.as_view()),
+    path('export/', PersonilExport.as_view()),
+    path('link-to-user/', LinkPersonilToUserView.as_view()),
     
-    # Endpoint dengan parameter dinamis harus di bawah endpoint statis
-    path('personil/<str:personil_id>/', PersonilView.as_view()),
-    
-    # Endpoints reference data
+    # Endpoints reference data - HARUS di atas endpoint dinamis
     path('pangkat/', PangkatView.as_view()),
     path('subdit/', SubditView.as_view()),
     path('jabatan/', JabatanView.as_view()),
     path('subsatker/', SubSatKerView.as_view()),
+    
+    # Endpoint dengan parameter dinamis HARUS di bawah endpoint statis
+    # Ini akan mencocokkan segala yang belum dicocokkan di atas
+    path('<str:personil_id>/', PersonilView.as_view()),
 ]

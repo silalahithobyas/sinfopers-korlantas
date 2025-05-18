@@ -35,11 +35,15 @@ class LinkPersonilToUserView(APIView):
             serializer = LinkPersonilToUserSerializer(data=request.data)
             if not serializer.is_valid():
                 logger.error(f"Validation errors: {serializer.errors}")
+                
+                # Format yang lebih konsisten untuk error validasi
+                # Ini akan menghasilkan format yang sama dengan prepare_error_response
+                # tapi dengan detail errors yang lebih lengkap
                 return Response(
                     {
                         "success": False,
-                        "errors": serializer.errors,
-                        "message": "Validasi data gagal"
+                        "message": "Validasi data gagal",
+                        "errors": serializer.errors
                     }, 
                     status.HTTP_400_BAD_REQUEST
                 )
@@ -89,11 +93,29 @@ class LinkPersonilToUserView(APIView):
                     
                 except Exception as e:
                     logger.error(f"[DEBUG] Error creating personil: {str(e)}")
-                    raise BadRequestException(f"Gagal membuat personil: {str(e)}")
+                    # Format error yang konsisten
+                    if hasattr(e, 'detail') and isinstance(e.detail, dict):
+                        # Jika exception menyediakan detail validasi
+                        return Response({
+                            "success": False,
+                            "message": f"Gagal membuat personil: {str(e)}",
+                            "errors": e.detail
+                        }, status.HTTP_400_BAD_REQUEST)
+                    else:
+                        raise BadRequestException(f"Gagal membuat personil: {str(e)}")
             
         except APIException as e:
             logger.error(f"[DEBUG] API Exception: {str(e)}")
-            return Response(prepare_error_response(str(e)), e.status_code)
+            
+            # Format yang konsisten untuk API exceptions
+            if hasattr(e, 'detail') and isinstance(e.detail, dict):
+                return Response({
+                    "success": False,
+                    "message": str(e),
+                    "errors": e.detail
+                }, e.status_code)
+            else:
+                return Response(prepare_error_response(str(e)), e.status_code)
             
         except Exception as e:
             logger.error(f"[DEBUG] Unexpected error linking personil to user: {str(e)}")
