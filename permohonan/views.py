@@ -64,6 +64,9 @@ class PermohonanViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(personel=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save()
     
     @action(detail=True, methods=['post'], url_path='hr-review')
     def hr_review(self, request, pk=None):
