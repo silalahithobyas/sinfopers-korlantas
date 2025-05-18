@@ -76,6 +76,13 @@ class AuthUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.username}"
 
+    def get_full_name(self):
+        """
+        Method ini mengembalikan username sebagai nama lengkap.
+        Di masa depan bisa dimodifikasi jika ada field nama lengkap.
+        """
+        return self.username
+
     @property
     def is_admin(self):
         return self.is_staff or self.role == self.ADMIN
