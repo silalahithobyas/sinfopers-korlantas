@@ -1,6 +1,7 @@
 # Create this file as authentication/views/user_management.py
 
 import logging
+from urllib import request
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -12,6 +13,8 @@ from commons.middlewares.exception import APIException
 from commons.middlewares.permissions import IsAdmin, IsHR
 from authentication.serializers.user_serializer import UserSerializer, UserCreateSerializer, ChangePasswordSerializer
 from authentication.models.users import AuthUser
+from personnel_database.models.users import UserPersonil
+from django.db.models import Q
 
 logger = logging.getLogger('general')
 
@@ -121,6 +124,59 @@ class UserDetailView(APIView):
             logger.error(f"Error deleting user: {str(e)}")
             return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class UserIncompleteDataView(APIView):
+    """
+    Enhanced view to get Pimpinan/Anggota users without personnel data
+    with comprehensive debugging
+    """
+    permission_classes = [IsAuthenticated, IsAdmin | IsHR]
+
+    def get(self, request):
+        """Get incomplete users with detailed debugging"""
+        try:
+
+
+            personil_ids = list(UserPersonil.objects.values_list('id', flat=True))
+    
+            
+            # Main query
+            users = AuthUser.objects.filter(
+                Q(role=AuthUser.PIMPINAN) | Q(role=AuthUser.ANGGOTA)
+            ).exclude(
+                id__in=personil_ids
+            ).order_by('username')
+
+            if users.exists():
+                sample_user = users.first()
+
+            # Serialization
+            serializer = UserSerializer(users, many=True)
+
+            # Prepare final response
+            response_data = {
+                "success": True,
+                "count": users.count(),
+                "results": serializer.data,
+                "_debug": {  # Include debug info in response for development
+                    "personil_ids_count": len(personil_ids),
+                    "sample_user": serializer.data[0] if serializer.data else None
+                }
+            }
+            
+            return Response(
+                prepare_success_response(response_data),
+                status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            logger.exception("Critical error in UserIncompleteDataView")
+            return Response(
+                prepare_error_response({
+                    "message": "Internal server error",
+                    "debug_info": str(e)
+                }),
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -133,3 +189,4 @@ class ChangePasswordView(APIView):
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response(prepare_success_response({"message": "Password berhasil diubah."}), status=status.HTTP_200_OK)
+

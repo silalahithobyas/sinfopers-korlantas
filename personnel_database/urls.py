@@ -1,10 +1,12 @@
 from django.urls import path
 from personnel_database.views.pangkat_views import PangkatView
+from personnel_database.views.user_management import IncompleteAnggotaPimpinanUsersView
 from personnel_database.views.user_personil_views import PersonilView, PersonilExport
 from personnel_database.views.subdit_views import SubditView
 from personnel_database.views.subsatker_views import SubSatKerView
 from personnel_database.views.jabatan_views import JatabanView
 from personnel_database.views.import_data_views import ImportDataView
+from authentication.views.user_management import UserManagementView
 
 urlpatterns = [
     path('pangkat/', PangkatView.as_view()),
@@ -15,4 +17,5 @@ urlpatterns = [
     path('import/', ImportDataView.as_view()),
     path('<str:personil_id>/', PersonilView.as_view()),
     path('', PersonilView.as_view()),
+    path('user-data/', UserManagementView.as_view()),
 ]
