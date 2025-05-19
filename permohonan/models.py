@@ -1,7 +1,17 @@
 import uuid
+import os
 from django.db import models
+from django.core.exceptions import ValidationError
 from authentication.models import AuthUser
 from commons.models import BaseModel
+
+def validate_file_extension(value):
+    if not value:
+        return
+    ext = os.path.splitext(value.name)[1]
+    valid_extensions = ['.pdf']
+    if not ext.lower() in valid_extensions:
+        raise ValidationError('File harus berformat PDF.')
 
 class Permohonan(BaseModel):
     class JenisPermohonan(models.TextChoices):
@@ -23,14 +33,40 @@ class Permohonan(BaseModel):
         default=JenisPermohonan.CUTI
     )
     alasan = models.TextField()
-    file_pendukung = models.FileField(upload_to='permohonan/', null=True, blank=True)
+    file_pendukung = models.FileField(
+        upload_to='permohonan/', 
+        validators=[validate_file_extension],
+        null=True, 
+        blank=True,
+        help_text="Wajib mengunggah file PDF sebagai lampiran pendukung"
+    )
     status = models.CharField(
         max_length=50,
         choices=StatusPermohonan.choices,
         default=StatusPermohonan.PENDING_HR
     )
+    # Data reviewer HR
+    hr_reviewer = models.ForeignKey(
+        AuthUser, 
+        on_delete=models.SET_NULL, 
+        related_name='hr_validasi', 
+        null=True, 
+        blank=True
+    )
+    hr_review_date = models.DateTimeField(null=True, blank=True)
     catatan_hr = models.TextField(blank=True, null=True)
+    
+    # Data reviewer Pimpinan
+    pimpinan_reviewer = models.ForeignKey(
+        AuthUser, 
+        on_delete=models.SET_NULL, 
+        related_name='pimpinan_persetujuan', 
+        null=True, 
+        blank=True
+    )
+    pimpinan_review_date = models.DateTimeField(null=True, blank=True)
     catatan_pimpinan = models.TextField(blank=True, null=True)
+    
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
 

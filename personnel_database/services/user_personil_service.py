@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.db.models import Q
 from django.db import transaction
 from abc import ABC
+import logging
 
 import pandas as pd
 
@@ -17,6 +18,7 @@ from personnel_database.models.users import UserPersonil
 from personnel_database.serializers.user_personil_serializer import UserPersonilSerializer
 from staffing_status.models import StaffingStatus
 from organizational_structure.models import Nodes
+from personnel_database.models.pangkat import Pangkat
 
 class UserPersonilService(ABC):
     
@@ -26,6 +28,38 @@ class UserPersonilService(ABC):
         subsatker = data.pop('subsatker')
         subdit = data.pop('subdit')
         jabatan = data.pop('jabatan')
+
+        # Tambahkan validasi DSP vs rill di sini
+        # Cek StaffingStatus untuk validasi DSP vs rill
+        logger = logging.getLogger('general')
+        
+        # Filter StaffingStatus berdasarkan subsatker dan pangkat
+        # Karena pangkat adalah ManyToManyField, kita perlu filter berbeda
+        
+        # Dapatkan semua staffing_status untuk subsatker ini
+        staffing_statuses = StaffingStatus.objects.filter(subsatker_id=subsatker)
+        
+        # Kemudian filter yang berisi pangkat yang kita cari
+        staffing_status = None
+        for status in staffing_statuses:
+            if status.pangkat.filter(id=pangkat).exists():
+                staffing_status = status
+                break
+        
+        logger.info(f"[DEBUG] Found staffing status: {staffing_status}")
+        
+        if not staffing_status:
+            error_msg = f"Failed to add User Personnel: No staffing status found for pangkat_id={pangkat} and subsatker_id={subsatker}"
+            logger.error(f"[DEBUG] {error_msg}")
+            raise BadRequestException(error_msg)
+        
+        # Cek apakah jumlah rill sudah mencapai atau melebihi DSP
+        if staffing_status.is_full():
+            error_msg = f"Tidak dapat menambahkan personil baru. Jumlah personil aktual ({staffing_status.rill}) sudah mencapai/melebihi DSP ({staffing_status.dsp}) untuk {staffing_status.nama} di {staffing_status.subsatker.nama}."
+            logger.error(f"[DEBUG] {error_msg}")
+            raise BadRequestException(error_msg)
+        
+        logger.info(f"[DEBUG] Current rill count: {staffing_status.rill}, DSP: {staffing_status.dsp}")
 
         personil = UserPersonil.objects.create(**data, pangkat_id = pangkat, subsatker_id = subsatker, 
                                                subdit_id=subdit, jabatan_id = jabatan)
@@ -83,10 +117,8 @@ class UserPersonilService(ABC):
     @classmethod
     @transaction.atomic
     def update_personil(cls, serializer, personil: UserPersonil) :
-        staffing_status = StaffingStatus.objects.filter(Q(pangkat=personil.pangkat) & Q(subsatker=personil.subsatker)).first()
-        staffing_status.rill = staffing_status.rill - 1
-        staffing_status.save()
-
+        # Tidak perlu lagi mengubah nilai rill secara manual
+        # karena rill sekarang dihitung sebagai property
         serializer = serializer.save()
         return serializer
     

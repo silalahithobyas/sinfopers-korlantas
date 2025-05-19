@@ -15,6 +15,7 @@ from authentication.serializers.user_serializer import UserSerializer, UserCreat
 from authentication.models.users import AuthUser
 from personnel_database.models.users import UserPersonil
 from django.db.models import Q
+from personnel_database.serializers.user_personil_serializer import UserPersonilSerializer
 
 logger = logging.getLogger('general')
 
@@ -42,6 +43,13 @@ class UserManagementView(APIView):
 
     def post(self, request):
         """Create a new user with role"""
+        # Cek permission khusus untuk pembuatan user (hanya Admin)
+        if not IsAdmin().has_permission(request, self):
+            return Response(
+                prepare_error_response("Hanya Admin yang bisa membuat user baru."),
+                status.HTTP_403_FORBIDDEN
+            )
+        
         try:
             serializer = UserCreateSerializer(data=request.data)
             if not serializer.is_valid():
@@ -124,6 +132,75 @@ class UserDetailView(APIView):
             logger.error(f"Error deleting user: {str(e)}")
             return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class UserDetailWithPersonilView(APIView):
+    """
+    View for getting detailed information about a user including linked personil data (if any)
+    Only accessible by Admin and HR roles
+    """
+    permission_classes = [IsAuthenticated, IsAdmin | IsHR]
+
+    def get_user(self, user_id):
+        try:
+            return AuthUser.objects.get(id=user_id)
+        except AuthUser.DoesNotExist:
+            raise APIException("User not found", status_code=status.HTTP_404_NOT_FOUND)
+
+    def get(self, request, user_id):
+        """Get a specific user with personil data (if linked)"""
+        try:
+            user = self.get_user(user_id)
+            user_data = UserSerializer(user).data
+
+            # Try to find linked personil data
+            try:
+                personil = UserPersonil.objects.get(user=user)
+                personil_data = UserPersonilSerializer(personil).data
+                has_personil = True
+            except UserPersonil.DoesNotExist:
+                personil_data = None
+                has_personil = False
+
+            # Prepare combined response
+            response_data = {
+                "user": user_data,
+                "has_personil": has_personil,
+                "personil": personil_data
+            }
+
+            return Response(prepare_success_response(response_data), status.HTTP_200_OK)
+
+        except APIException as e:
+            return Response(prepare_error_response(str(e)), e.status_code)
+
+        except Exception as e:
+            logger.error(f"Error getting user detail with personil: {str(e)}")
+            return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UnlinkedUsersView(APIView):
+    """
+    View untuk mendapatkan daftar user yang belum terhubung dengan personil
+    Hanya bisa diakses oleh Admin dan HR
+    """
+    permission_classes = [IsAuthenticated, IsAdmin | IsHR]
+
+    def get(self, request):
+        """Get users that are not linked to any personnel"""
+        try:
+            # Filter user yang belum memiliki personil
+            # Menggunakan Django's related objects yang belum terhubung (isnull=True)
+            users = AuthUser.objects.filter(personil__isnull=True, is_active=True)
+            serializer = UserSerializer(users, many=True)
+            return Response(prepare_success_response(serializer.data), status.HTTP_200_OK)
+
+        except APIException as e:
+            return Response(prepare_error_response(str(e)), e.status_code)
+
+        except Exception as e:
+            logger.error(f"Error getting unlinked users: {str(e)}")
+            return Response(prepare_error_response(str(e)), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class UserIncompleteDataView(APIView):
     """
     Enhanced view to get Pimpinan/Anggota users without personnel data
@@ -177,6 +254,7 @@ class UserIncompleteDataView(APIView):
                 }),
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+            
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
