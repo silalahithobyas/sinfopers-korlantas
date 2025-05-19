@@ -4,6 +4,7 @@ from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+from django.contrib.auth.password_validation import validate_password
 
 from authentication.models.custom_users import user_model
 from authentication.models.users import AuthUser
@@ -59,3 +60,32 @@ class UserCreateSerializer(serializers.ModelSerializer):
             **validated_data
         )
         return user
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        min_length=6,
+    )
+    confirm_password = serializers.CharField(write_only=True, required=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Password lama salah")
+        return value
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({
+                "confirm_password": "Konfirmasi password tidak cocok"
+            })
+        
+        if data['old_password'] == data['new_password']:
+            raise serializers.ValidationError({
+                "new_password": "Password baru harus berbeda dengan password lama"
+            })
+            
+        return data
