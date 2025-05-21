@@ -57,8 +57,6 @@ class StaffingStatusAdmin(admin.ModelAdmin):
     status_kepegawaian.short_description = 'Status'
     
     def save_model(self, request, obj, form, change):
-        if not change:  # Jika ini adalah entri baru
-            obj.rill = 0  # Set default rill ke 0
         super().save_model(request, obj, form, change)
         if not change:  # Jika ini adalah data baru
             self.message_user(
