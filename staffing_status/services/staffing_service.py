@@ -155,7 +155,6 @@ class StaffingService(ABC):
     
     @classmethod
     def export_csv_file(cls):
-    # Define the MultiIndex for columns
         # Define the MultiIndex for columns
         columns = pd.MultiIndex.from_tuples([
             ('', 'No'), ('', 'SatKer'),
@@ -175,102 +174,132 @@ class StaffingService(ABC):
             ('Ket', 'DSP'), ('Ket', 'RIIL')
         ], names=['', ''])
          
-        res = dict()
-
-        for staffing_status_obj in StaffingStatus.objects.filter():
-            if staffing_status_obj.subsatker.nama not in res:
-                res[staffing_status_obj.subsatker.nama] = {}
-            
-            pangkat = staffing_status_obj.pangkat.all()
-            for pangkat_obj in pangkat:
-                tipe = pangkat_obj.tipe
-                if tipe not in res[staffing_status_obj.subsatker.nama]:
-                    res[staffing_status_obj.subsatker.nama][tipe] = {}
-                res[staffing_status_obj.subsatker.nama][tipe][staffing_status_obj.nama] = {'dsp':staffing_status_obj.dsp, 'riil':staffing_status_obj.rill}
-    
-
+        # List kategori pangkat
+        polri_pangkat = ['IRJEN', 'BRIGJEN', 'KOMBES', 'AKBP', 'KOMPOL', 'AKP', 'IP', 'BRIG/TA']
+        pns_polri_pangkat = ['IV', 'III', 'II/I']
+        
+        # Ambil semua SubSatKer dalam urutan custom yang ditentukan
+        satker_list = sorted(SubSatKer.objects.all(), key=lambda x: ORDER_DICT.get(x.nama, len(CUSTOM_ORDER)))
+        
+        # Dapatkan data staffing status dari database
+        data = cls.get_staffing_status()
+        
         # Create the DataFrame
-        # df = pd.DataFrame(data, columns=columns)
         df = pd.DataFrame(columns=columns)
-        sorted_data = sorted(res.items(), key=lambda item: ORDER_DICT.get(item[0].upper(), len(CUSTOM_ORDER)))
-        sorted_data_dict = dict(sorted_data)
-        res = sorted_data_dict
-
-        for idx, (satker, levels) in enumerate(res.items(), start=1):
+        
+        # Isi dataframe dengan data
+        for idx, satker_data in enumerate(data, start=1):
+            satker = satker_data['satker']
             row = [idx, satker]
-            polri_data = []
-            pns_polri_data = []
-            for level in ['IRJEN', 'BRIGJEN', 'KOMBES', 'AKBP', 'KOMPOL', 'AKP', 'IP', 'BRIG/TA']:
-                if 'POLRI' in levels and level in levels['POLRI']:
-                    polri_data.extend([levels['POLRI'][level]['dsp'], levels['POLRI'][level]['riil']])
-                else:
-                    polri_data.extend([0, 0])
-            polri_data.extend([sum(polri_data[::2]), sum(polri_data[1::2])])
-            for level in ['IV', 'III', 'II/I']:
-                if 'PNS POLRI' in levels and level in levels['PNS POLRI']:
-                    pns_polri_data.extend([levels['PNS POLRI'][level]['dsp'], levels['PNS POLRI'][level]['riil']])
-                else:
-                    pns_polri_data.extend([0, 0])
-            pns_polri_data.extend([sum(pns_polri_data[::2]), sum(pns_polri_data[1::2])])
-            row.extend(polri_data)
-            row.extend(pns_polri_data)
-            row.extend([sum(polri_data[:-2:2]) + sum(pns_polri_data[:-2:2]), sum(polri_data[1:-2:2]) + sum(pns_polri_data[1:-2:2])])
+            
+            # Proses data POLRI
+            polri_dsp_total = 0
+            polri_riil_total = 0
+            
+            for level in polri_pangkat:
+                dsp = 0
+                riil = 0
+                if 'POLRI' in satker_data and level in satker_data['POLRI']:
+                    dsp = satker_data['POLRI'][level]['dsp']
+                    riil = satker_data['POLRI'][level]['rill']
+                
+                polri_dsp_total += dsp
+                polri_riil_total += riil
+                row.extend([dsp, riil])
+            
+            # Tambahkan total POLRI
+            if 'POLRI' in satker_data and 'jumlah' in satker_data['POLRI']:
+                polri_dsp_total = satker_data['POLRI']['jumlah']['dsp']
+                polri_riil_total = satker_data['POLRI']['jumlah']['rill']
+            
+            row.extend([polri_dsp_total, polri_riil_total])
+            
+            # Proses data PNS POLRI
+            pns_dsp_total = 0
+            pns_riil_total = 0
+            
+            for level in pns_polri_pangkat:
+                dsp = 0
+                riil = 0
+                if 'PNS POLRI' in satker_data and level in satker_data['PNS POLRI']:
+                    dsp = satker_data['PNS POLRI'][level]['dsp']
+                    riil = satker_data['PNS POLRI'][level]['rill']
+                
+                pns_dsp_total += dsp
+                pns_riil_total += riil
+                row.extend([dsp, riil])
+            
+            # Tambahkan total PNS POLRI
+            if 'PNS POLRI' in satker_data and 'jumlah' in satker_data['PNS POLRI']:
+                pns_dsp_total = satker_data['PNS POLRI']['jumlah']['dsp']
+                pns_riil_total = satker_data['PNS POLRI']['jumlah']['rill']
+                
+            row.extend([pns_dsp_total, pns_riil_total])
+            
+            # Tambahkan kolom keterangan
+            if 'keterangan' in satker_data:
+                ket_dsp = satker_data['keterangan']['dsp']
+                ket_riil = satker_data['keterangan']['rill']
+                row.extend([ket_dsp, ket_riil])
+            else:
+                row.extend(['...', '...'])
+            
+            # Tambahkan row ke dataframe
             df.loc[len(df)] = row
 
         # Calculate totals
-        totals = [
-            ['Jumlah', ''] + [df.iloc[:, i].sum() for i in range(2, len(df.columns))]
-        ]
-        # Convert totals to DataFrame
-        totals_df = pd.DataFrame(totals, columns=columns)
-        # Concatenate the totals row to the original DataFrame
-        df = pd.concat([df, totals_df], ignore_index=True)
+        totals = ['Jumlah', '']
+        for i in range(2, len(df.columns)):
+            totals.append(df.iloc[:, i].sum())
+        
+        # Add totals row to DataFrame
+        df.loc[len(df)] = totals
 
         # Create an Excel workbook and worksheet
         wb = Workbook()
         ws = wb.active
-        # Append the dataframe to the worksheet starting from row 2
+        
+        # Tambahkan header utama
+        ws.merge_cells('C1:T1')
+        ws.merge_cells('U1:AB1')
+        ws['C1'].value = 'POLRI'
+        ws['U1'].value = 'PNS POLRI'
+        ws['C1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws['U1'].alignment = Alignment(horizontal='center', vertical='center')
+        
+        # Append the dataframe to the worksheet
         for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=2):
             for c_idx, value in enumerate(row, start=1):
                 ws.cell(row=r_idx, column=c_idx, value=value)
 
         # Merge cells for the header
-        ws.merge_cells('C2:D2')
-        ws.merge_cells('E2:F2')
-        ws.merge_cells('G2:H2')
-        ws.merge_cells('I2:J2')
-        ws.merge_cells('K2:L2')
-        ws.merge_cells('M2:N2')
-        ws.merge_cells('O2:P2')
-        ws.merge_cells('Q2:R2')
-        ws.merge_cells('S2:T2')
-        ws.merge_cells('U2:V2')
-        ws.merge_cells('W2:X2')
-        ws.merge_cells('Y2:Z2')
-        ws.merge_cells('AA2:AB2')
-        ws.merge_cells('AC2:AD2')
+        ws.merge_cells('C2:D2')  # IRJEN
+        ws.merge_cells('E2:F2')  # BRIGJEN
+        ws.merge_cells('G2:H2')  # KOMBES
+        ws.merge_cells('I2:J2')  # AKBP
+        ws.merge_cells('K2:L2')  # KOMPOL
+        ws.merge_cells('M2:N2')  # AKP
+        ws.merge_cells('O2:P2')  # IP
+        ws.merge_cells('Q2:R2')  # BRIG/TA
+        ws.merge_cells('S2:T2')  # Jumlah POLRI
+        ws.merge_cells('U2:V2')  # IV
+        ws.merge_cells('W2:X2')  # III
+        ws.merge_cells('Y2:Z2')  # II/I
+        ws.merge_cells('AA2:AB2')  # Jumlah PNS
+        ws.merge_cells('AC2:AD2')  # Keterangan
         
-        ws.merge_cells('C1:T1')
-        ws.merge_cells('U1:AB1')
-
-        ws['C1'].value = 'POLRI'
-        ws['U1'].value = 'PNS POLRI'
-
-        ws['C1'].alignment = Alignment(horizontal='center', vertical='center')
-        ws['U1'].alignment = Alignment(horizontal='center', vertical='center')
-
+        # Set header values
         headers = ['IRJEN', 'BRIGJEN', 'KOMBES', 'AKBP', 'KOMPOL', 'AKP', 'IP', 'BRIG/TA', 'Jumlah', 'IV', 'III', 'II/I', 'Jumlah', 'Ket']
         for i, header in enumerate(headers, start=3):
-            ws.cell(row=2, column=i*2-1-2).value = header
-            ws.cell(row=2, column=i*2-1-2).alignment = Alignment(horizontal='center', vertical='center')
+            cell = ws.cell(row=2, column=i*2-3)
+            cell.value = header
+            cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        # Align the subheaders
-        for col_num, (header, subheader) in enumerate(df.columns, 1):
+        # Align the subheaders (DSP/RIIL)
+        for col_num in range(3, len(columns) + 1):
             cell = ws.cell(row=3, column=col_num)
             cell.alignment = Alignment(horizontal='center', vertical='center')
             
-            
-
         # Adjust column widths
         for col in ws.columns:
             max_length = 0
@@ -279,7 +308,7 @@ class StaffingService(ABC):
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except Exception as e:
+                except Exception:
                     pass
             adjusted_width = max_length + 2
             ws.column_dimensions[column].width = adjusted_width
