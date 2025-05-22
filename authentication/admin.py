@@ -3,13 +3,14 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib import messages
+from django.utils.html import format_html
 
 from authentication.models import AuthUser
 
 
 class CustomUserAdmin(UserAdmin):
     model = AuthUser
-    list_display = ('username', 'role', 'is_staff', 'is_active', 'email')
+    list_display = ('username', 'role', 'is_staff', 'is_active', 'email', 'linked_personnel')
     list_filter = ('role', 'is_staff', 'is_active',)
     fieldsets = (
         (None, {'fields': ('email', 'username', 'password')}),
@@ -22,8 +23,23 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('username', 'email', 'password1', 'password2', 'role', 'is_staff', 'is_active')}
          ),
     )
-    search_fields = ('username', 'email')
+    search_fields = ('username', 'email', 'personil__nama')
     ordering = ('username',)
+
+    def linked_personnel(self, obj):
+        """Menampilkan nama personil yang terhubung dengan user"""
+        try:
+            if hasattr(obj, 'personil') and obj.personil:
+                return format_html(
+                    '<span style="color: green;">✓</span> <a href="/backend/admin/personnel_database/userpersonil/{}/change/">{}</a>',
+                    obj.personil.id,
+                    obj.personil.nama
+                )
+            return format_html('<span style="color: red;">✗</span> Tidak terhubung')
+        except Exception:
+            return format_html('<span style="color: red;">✗</span> Tidak terhubung')
+    
+    linked_personnel.short_description = 'Personil'
 
     def save_model(self, request, obj, form, change):
         """
