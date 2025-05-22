@@ -221,17 +221,17 @@ class ImportDataService(ABC):
                 
                 # Buat personil dan hubungkan dengan user
                 personil = UserPersonil.objects.create(
-                    nama=row["NAMA"],
-                    nrp=nrp,
-                    pangkat=pangkat_dict[pangkat_nama],
-                    jabatan=jabatan_dict[jabatan_nama],
-                    jenis_kelamin=jenis_kelamin,
-                    subsatker=subsatker_dict[subsatker_nama],
-                    subdit=subdit_dict[subdit_nama],
-                    bko=bko,
+                        nama=row["NAMA"],
+                        nrp=nrp,
+                        pangkat=pangkat_dict[pangkat_nama],
+                        jabatan=jabatan_dict[jabatan_nama],
+                        jenis_kelamin=jenis_kelamin,
+                        subsatker=subsatker_dict[subsatker_nama],
+                        subdit=subdit_dict[subdit_nama],
+                        bko=bko,
                     status=status,
                     user=user
-                )
+                    )
                 
                 results["success"] += 1
                 
