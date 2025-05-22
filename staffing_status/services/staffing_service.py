@@ -201,7 +201,7 @@ class StaffingService(ABC):
             ('KOMPOL', 'DSP'), ('KOMPOL', 'RIIL'),
             ('AKP', 'DSP'), ('AKP', 'RIIL'),
             ('IP', 'DSP'), ('IP', 'RIIL'),
-            ('BRIG/TA', 'DSP'), ('BRIG/TA', 'RIIL'),
+            ('BRIGADIR', 'DSP'), ('BRIGADIR', 'RIIL'),
             ('Jumlah', 'DSP'), ('Jumlah', 'RIIL'),
             ('IV', 'DSP'), ('IV', 'RIIL'),
             ('III', 'DSP'), ('III', 'RIIL'),
@@ -211,7 +211,7 @@ class StaffingService(ABC):
         ], names=['', ''])
          
         # List kategori pangkat
-        polri_pangkat = ['IRJEN', 'BRIGJEN', 'KOMBES', 'AKBP', 'KOMPOL', 'AKP', 'IP', 'BRIG/TA']
+        polri_pangkat = ['IRJEN', 'BRIGJEN', 'KOMBES', 'AKBP', 'KOMPOL', 'AKP', 'IP', 'BRIGADIR']
         pns_polri_pangkat = ['IV', 'III', 'II/I']
         
         # Ambil semua SubSatKer dalam urutan custom yang ditentukan
@@ -316,7 +316,7 @@ class StaffingService(ABC):
         ws.merge_cells('K2:L2')  # KOMPOL
         ws.merge_cells('M2:N2')  # AKP
         ws.merge_cells('O2:P2')  # IP
-        ws.merge_cells('Q2:R2')  # BRIG/TA
+        ws.merge_cells('Q2:R2')  # BRIGADIR
         ws.merge_cells('S2:T2')  # Jumlah POLRI
         ws.merge_cells('U2:V2')  # IV
         ws.merge_cells('W2:X2')  # III
@@ -325,7 +325,7 @@ class StaffingService(ABC):
         ws.merge_cells('AC2:AD2')  # Keterangan
         
         # Set header values
-        headers = ['IRJEN', 'BRIGJEN', 'KOMBES', 'AKBP', 'KOMPOL', 'AKP', 'IP', 'BRIG/TA', 'Jumlah', 'IV', 'III', 'II/I', 'Jumlah', 'Ket']
+        headers = ['IRJEN', 'BRIGJEN', 'KOMBES', 'AKBP', 'KOMPOL', 'AKP', 'IP', 'BRIGADIR', 'Jumlah', 'IV', 'III', 'II/I', 'Jumlah', 'Ket']
         for i, header in enumerate(headers, start=3):
             cell = ws.cell(row=2, column=i*2-3)
             cell.value = header
