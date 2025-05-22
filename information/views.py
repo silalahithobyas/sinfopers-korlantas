@@ -9,8 +9,9 @@ from .serializers import InformationSerializer
 from authentication.models import AuthUser
 from django.utils import timezone
 import logging
-import traceback
+from rest_framework.generics import ListAPIView
 from authentication.permissions import IsHRorReadOnly, IsHROwnerOrReadOnly
+from .serializers import InformationLogSerializer
 
 # Tambahkan logger untuk mempermudah debugging
 logger = logging.getLogger(__name__)
@@ -45,3 +46,11 @@ class InformationDetailView(generics.RetrieveUpdateDestroyAPIView):
             detail=f"Information deleted: {instance.information_title}"
         )
         instance.delete()
+
+class InformationLogListView(ListAPIView):
+    serializer_class = InformationLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        info_id = self.kwargs.get("information_id")
+        return InformationLog.objects.filter(information__information_id=info_id).order_by("-timestamp")

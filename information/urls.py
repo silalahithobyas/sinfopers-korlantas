@@ -1,10 +1,8 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import InformationViewSet
-
-router = DefaultRouter()
-router.register(r'', InformationViewSet, basename='information')
+from django.urls import path
+from .views import InformationListCreateView, InformationDetailView, InformationLogListView
 
 urlpatterns = [
-    path('', include(router.urls)),
-] 
+    path('information/', InformationListCreateView.as_view()),
+    path('information/<uuid:pk>/', InformationDetailView.as_view()),
+    path('information/<uuid:information_id>/logs/', InformationLogListView.as_view()),  # ⬅ API log
+]
