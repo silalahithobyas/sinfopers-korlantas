@@ -1,5 +1,6 @@
 import pandas as pd
 from django.db.models import Case, When, CharField, Value
+import logging
 
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
@@ -17,6 +18,7 @@ from commons.middlewares.exception import BadRequestException
 
 from staffing_status.models import StaffingStatus
 from personnel_database.models.subsatker import SubSatKer
+from personnel_database.models.pangkat import Pangkat
 
 CUSTOM_ORDER = [
     "PIMPINAN",
@@ -36,19 +38,53 @@ class StaffingService(ABC):
     @classmethod
     @transaction.atomic
     def update_staffing_status(cls, **kwargs) :
+        logger = logging.getLogger('general')
         subsatker = kwargs.pop("satker")
         data = kwargs.pop("data")
-        staffing_status_list = StaffingStatus.objects.filter(subsatker__nama = subsatker)
-
-        if(len(staffing_status_list) == 0) :
-            raise BadRequestException(f"Satker {subsatker} not exists in staffing status.")
         
-        for i in data :
+        logger.info(f"Updating staffing status for satker: {subsatker}")
+        
+        # Get the SubSatKer object first
+        try:
+            subsatker_obj = SubSatKer.objects.get(nama=subsatker)
+        except SubSatKer.DoesNotExist:
+            error_msg = f"Satker '{subsatker}' not found in SubSatKer. Available satkers: {list(SubSatKer.objects.values_list('nama', flat=True))}"
+            logger.error(error_msg)
+            raise BadRequestException(error_msg)
+
+        # Log available pangkat
+        available_pangkat = Pangkat.objects.values_list('nama', flat=True)
+        logger.info(f"Available pangkat in database: {list(available_pangkat)}")
+        
+        # Get or create staffing status for each pangkat
+        for i in data:
             i = dict(i)
-            staffing_status = staffing_status_list.filter(Q(nama=i['pangkat']) | Q(pangkat__nama=i['pangkat'])).first()
-            if(not staffing_status) :
-                raise BadRequestException(f"Pangkat {i['pangkat']} not exists in staffing status.")            
-            cls.update_data(staffing_status, i['dsp'])
+            pangkat_name = i['pangkat']
+            logger.info(f"Processing pangkat: {pangkat_name}")
+            
+            # Find or create pangkat object
+            pangkat_obj, pangkat_created = Pangkat.objects.get_or_create(
+                nama=pangkat_name,
+                defaults={'tipe': 'POLRI' if pangkat_name not in ['IV', 'III', 'II/I'] else 'PNS POLRI'}
+            )
+            
+            if pangkat_created:
+                logger.info(f"Created new pangkat: {pangkat_name}")
+            
+            # Get or create staffing status
+            staffing_status, created = StaffingStatus.objects.get_or_create(
+                nama=pangkat_name,
+                subsatker=subsatker_obj,
+                defaults={'dsp': i['dsp']}
+            )
+            
+            if created:
+                staffing_status.pangkat.add(pangkat_obj)
+                logger.info(f"Created new staffing status for {subsatker} - {pangkat_name}")
+            else:
+                staffing_status.dsp = i['dsp']
+                staffing_status.save()
+                logger.info(f"Updated existing staffing status for {subsatker} - {pangkat_name}")
 
         return cls.get_staffing_status()
 
