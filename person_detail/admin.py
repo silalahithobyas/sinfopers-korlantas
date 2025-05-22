@@ -1,3 +1,4 @@
 from django.contrib import admin
 
-# Register your models here.
+# Tidak ada model di aplikasi person_detail
+# Aplikasi ini hanya digunakan untuk menampilkan data dari model lain

@@ -25,7 +25,7 @@ def get_user_from_token(request):
 
         # Dapatkan user
         user = get_object_or_404(AuthUser, id=user_id)
-        
+
         # Siapkan response data
         response_data = {
             "user": {

@@ -183,10 +183,10 @@ class StaffingService(ABC):
         
         # Dapatkan data staffing status dari database
         data = cls.get_staffing_status()
-        
+
         # Create the DataFrame
         df = pd.DataFrame(columns=columns)
-        
+
         # Isi dataframe dengan data
         for idx, satker_data in enumerate(data, start=1):
             satker = satker_data['satker']
@@ -266,7 +266,7 @@ class StaffingService(ABC):
         ws['U1'].value = 'PNS POLRI'
         ws['C1'].alignment = Alignment(horizontal='center', vertical='center')
         ws['U1'].alignment = Alignment(horizontal='center', vertical='center')
-        
+
         # Append the dataframe to the worksheet
         for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=2):
             for c_idx, value in enumerate(row, start=1):
@@ -299,7 +299,7 @@ class StaffingService(ABC):
         for col_num in range(3, len(columns) + 1):
             cell = ws.cell(row=3, column=col_num)
             cell.alignment = Alignment(horizontal='center', vertical='center')
-            
+
         # Adjust column widths
         for col in ws.columns:
             max_length = 0

@@ -11,6 +11,7 @@ from personnel_database.models.pangkat import Pangkat
 from personnel_database.models.jabatan import Jabatan
 from personnel_database.models.users import UserPersonil
 from staffing_status.models import StaffingStatus
+from authentication.models import AuthUser
 
 class ImportDataService(ABC):
     
@@ -142,6 +143,9 @@ class ImportDataService(ABC):
         subsatker_dict = {s.nama: s for s in SubSatKer.objects.all()}
         jabatan_dict = {j.nama: j for j in Jabatan.objects.all()}
         
+        # Dictionary untuk username ke user
+        users_dict = {str(user.username): user for user in AuthUser.objects.all()}
+        
         # Statistik import
         results = {
             "total": 0,
@@ -151,7 +155,7 @@ class ImportDataService(ABC):
         }
         
         # Cek kolom wajib
-        required_columns = ["NAMA", "NRP", "PANGKAT", "JABATAN", "JENIS_KELAMIN", "SUBSATKER", "SUBDIT", "BKO", "STATUS"]
+        required_columns = ["NAMA", "NRP", "PANGKAT", "JABATAN", "JENIS_KELAMIN", "SUBSATKER", "SUBDIT", "BKO", "STATUS", "USERNAME"]
         for col in required_columns:
             if col not in spamreader.columns:
                 raise BadRequestException(f"Missing required column: {col}")
@@ -165,6 +169,11 @@ class ImportDataService(ABC):
                     nrp = int(row["NRP"])
                 except (ValueError, TypeError):
                     raise BadRequestException(f"NRP harus berupa angka: {row['NRP']}")
+                
+                # Ambil username dari CSV
+                username = str(row["USERNAME"]).strip()
+                if not username:
+                    raise BadRequestException(f"Username tidak boleh kosong")
                 
                 # Validasi referensi
                 pangkat_nama = row["PANGKAT"]
@@ -200,19 +209,29 @@ class ImportDataService(ABC):
                 # Cek apakah NRP sudah ada - tolak jika sudah ada
                 if UserPersonil.objects.filter(nrp=nrp).exists():
                     raise BadRequestException(f"NRP {nrp} sudah terdaftar. Duplikasi NRP tidak diperbolehkan.")
-                else:
-                    # Buat baru jika NRP belum ada
-                    UserPersonil.objects.create(
-                        nama=row["NAMA"],
-                        nrp=nrp,
-                        pangkat=pangkat_dict[pangkat_nama],
-                        jabatan=jabatan_dict[jabatan_nama],
-                        jenis_kelamin=jenis_kelamin,
-                        subsatker=subsatker_dict[subsatker_nama],
-                        subdit=subdit_dict[subdit_nama],
-                        bko=bko,
-                        status=status
-                    )
+                
+                # Cari user berdasarkan username
+                user = users_dict.get(username)
+                if not user:
+                    raise BadRequestException(f"User dengan username '{username}' tidak ditemukan. Buat akun user terlebih dahulu.")
+                
+                # Cek apakah user sudah terhubung dengan personil lain
+                if UserPersonil.objects.filter(user=user).exists():
+                    raise BadRequestException(f"User dengan username '{username}' sudah terhubung dengan personil lain.")
+                
+                # Buat personil dan hubungkan dengan user
+                personil = UserPersonil.objects.create(
+                    nama=row["NAMA"],
+                    nrp=nrp,
+                    pangkat=pangkat_dict[pangkat_nama],
+                    jabatan=jabatan_dict[jabatan_nama],
+                    jenis_kelamin=jenis_kelamin,
+                    subsatker=subsatker_dict[subsatker_nama],
+                    subdit=subdit_dict[subdit_nama],
+                    bko=bko,
+                    status=status,
+                    user=user
+                )
                 
                 results["success"] += 1
                 
