@@ -8,9 +8,16 @@ class InformationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Information
-        fields = '__all__'
-        read_only_fields = [
+        fields = [
+            'id',
+            'information_title',
+            'information_context',
+            'file_pendukung',
+            'penulis_username',
+            'date_created',
+            'date_updated',
         ]
+        read_only_fields = ['penulis_username', 'date_created', 'date_updated']
     
     def get_penulis_username(self, obj):
         return obj.penulis.username
@@ -20,9 +27,3 @@ class InformationSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         validated_data['penulis'] = user
         return super().create(validated_data)
-    
-    def validate_file_pendukung(self, value):
-        # Hanya validasi file untuk request create baru, bukan untuk data lama
-        if 'create' in self.context.get('view', {}).action and not value:
-            raise serializers.ValidationError("File pendukung wajib diunggah")
-        return value
