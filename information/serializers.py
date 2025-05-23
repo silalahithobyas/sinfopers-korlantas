@@ -9,7 +9,7 @@ class InformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Information
         fields = [
-            'id',
+            'information_id',
             'information_title',
             'information_context',
             'file_pendukung',

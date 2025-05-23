@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from commons.applibs.response import prepare_success_response, prepare_error_response, serializer_error_response
 from commons.middlewares.exception import APIException
-from commons.middlewares.permissions import IsAdmin, IsHR
+from commons.middlewares.permissions import IsAdmin, IsHR, IsPimpinan
 from authentication.serializers.user_serializer import UserSerializer, UserCreateSerializer, ChangePasswordSerializer
 from authentication.models.users import AuthUser
 from personnel_database.models.users import UserPersonil
@@ -181,9 +181,9 @@ class UserDetailWithPersonilView(APIView):
 class UnlinkedUsersView(APIView):
     """
     View untuk mendapatkan daftar user yang belum terhubung dengan personil
-    Hanya bisa diakses oleh Admin dan HR
+    Bisa diakses oleh Admin, HR, dan Pimpinan
     """
-    permission_classes = [IsAuthenticated, IsAdmin | IsHR]
+    permission_classes = [IsAuthenticated, IsAdmin | IsHR | IsPimpinan]
 
     def get(self, request):
         """Get users that are not linked to any personnel"""

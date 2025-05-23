@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/v1/organizational-structure/', include('organizational_structure.urls')),
     path('api/v1/person-detail/', include('person_detail.urls')),
     path('api/v1/permohonan/', include('permohonan.urls')),
+    path('api/v1/', include('information.urls')),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     path('health/', health_check, name='health_check'),
