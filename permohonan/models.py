@@ -154,6 +154,13 @@ class Permohonan(BaseModel):
         cutoff_date = timezone.now() - timedelta(days=7)
         return self.date_created <= cutoff_date
 
+    @property
+    def days_since_created(self):
+        """
+        Mengembalikan jumlah hari sejak permohonan dibuat
+        """
+        return (timezone.now() - self.date_created).days
+
     class Meta:
         ordering = ['-date_created']
         verbose_name = "Permohonan"
