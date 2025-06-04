@@ -9,6 +9,8 @@ class PermohonanSerializer(serializers.ModelSerializer):
     jenis_permohonan_display = serializers.SerializerMethodField()
     hr_reviewer_name = serializers.SerializerMethodField()
     pimpinan_reviewer_name = serializers.SerializerMethodField()
+    is_expired = serializers.SerializerMethodField()
+    days_since_created = serializers.SerializerMethodField()
     
     class Meta:
         model = Permohonan
@@ -18,7 +20,7 @@ class PermohonanSerializer(serializers.ModelSerializer):
             'status', 'status_display', 
             'hr_reviewer', 'hr_reviewer_name', 'hr_review_date', 'catatan_hr',
             'pimpinan_reviewer', 'pimpinan_reviewer_name', 'pimpinan_review_date', 'catatan_pimpinan',
-            'date_created', 'date_updated'
+            'date_created', 'date_updated', 'is_expired', 'days_since_created'
         ]
         read_only_fields = [
             'personel', 'status', 'hr_reviewer', 'hr_review_date', 
@@ -43,6 +45,18 @@ class PermohonanSerializer(serializers.ModelSerializer):
         if obj.pimpinan_reviewer:
             return obj.pimpinan_reviewer.get_full_name() or obj.pimpinan_reviewer.username
         return None
+    
+    def get_is_expired(self, obj):
+        """
+        Mengembalikan True jika permohonan sudah kadaluarsa (lebih dari 7 hari tanpa respon HR)
+        """
+        return obj.is_expired()
+    
+    def get_days_since_created(self, obj):
+        """
+        Mengembalikan jumlah hari sejak permohonan dibuat
+        """
+        return (timezone.now() - obj.date_created).days
     
     def create(self, validated_data):
         # Set personel to current user

@@ -24,6 +24,9 @@ class PermohonanViewSet(viewsets.ModelViewSet):
     serializer_class = PermohonanSerializer
     
     def get_queryset(self):
+        # Jalankan auto-expire untuk memastikan status permohonan yang kadaluarsa diupdate
+        Permohonan.auto_expire_pending_requests()
+        
         user = self.request.user
         
         # Jika user adalah anggota, hanya lihat permohonan miliknya
@@ -60,10 +63,35 @@ class PermohonanViewSet(viewsets.ModelViewSet):
         elif self.action == 'history_pimpinan':
             # Hanya pimpinan yang bisa mengakses history pimpinan
             return [IsPimpinan()]
+        elif self.action == 'check_expired':
+            # Endpoint untuk mengecek dan mengupdate expired requests
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
     
     def perform_create(self, serializer):
         serializer.save(personel=self.request.user)
+    
+    @action(detail=False, methods=['post'], url_path='check-expired')
+    def check_expired(self, request):
+        """
+        Endpoint untuk secara manual mengecek dan mengupdate permohonan yang kadaluarsa
+        """
+        try:
+            expired_count = Permohonan.auto_expire_pending_requests()
+            return Response({
+                "success": True,
+                "message": f"Berhasil mengecek permohonan kadaluarsa",
+                "data": {
+                    "expired_count": expired_count
+                }
+            })
+        except Exception as e:
+            logger.error(f"Error in check_expired: {str(e)}")
+            return Response({
+                "success": False,
+                "message": f"Terjadi kesalahan: {str(e)}",
+                "data": None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=True, methods=['post'], url_path='hr-review')
     def hr_review(self, request, pk=None):

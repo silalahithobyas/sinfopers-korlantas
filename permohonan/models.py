@@ -2,6 +2,8 @@ import uuid
 import os
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
 from authentication.models import AuthUser
 from commons.models import BaseModel
 
@@ -12,6 +14,34 @@ def validate_file_extension(value):
     valid_extensions = ['.pdf']
     if not ext.lower() in valid_extensions:
         raise ValidationError('File harus berformat PDF.')
+
+class PermohonanManager(models.Manager):
+    """
+    Custom manager untuk Permohonan yang otomatis mengecek dan mengupdate
+    permohonan yang sudah kadaluarsa
+    """
+    
+    def get_pending_hr(self):
+        """
+        Get permohonan yang masih pending HR (dengan auto-expire check)
+        """
+        # Jalankan auto-expire sebelum query
+        self.model.auto_expire_pending_requests()
+        return self.filter(status=self.model.StatusPermohonan.PENDING_HR)
+    
+    def get_expired_today(self):
+        """
+        Get permohonan yang expire hari ini
+        """
+        cutoff_date = timezone.now() - timedelta(days=7)
+        today_start = cutoff_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = cutoff_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        return self.filter(
+            status=self.model.StatusPermohonan.TIDAK_VALID,
+            catatan_hr="Tidak ada persetujuan dari HR, silakan buat permohonan kembali",
+            date_updated__range=[today_start, today_end]
+        )
 
 class Permohonan(BaseModel):
     class JenisPermohonan(models.TextChoices):
@@ -70,8 +100,59 @@ class Permohonan(BaseModel):
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
 
+    # Gunakan custom manager
+    objects = PermohonanManager()
+
     def __str__(self):
         return f"{self.personel.username} - {self.jenis_permohonan} - {self.status}"
+
+    @classmethod
+    def auto_expire_pending_requests(cls):
+        """
+        Otomatis mengubah status permohonan yang sudah lebih dari 7 hari 
+        tanpa respon HR menjadi TIDAK_VALID
+        """
+        import logging
+        from django.db import connection
+        
+        logger = logging.getLogger(__name__)
+        
+        # Cari permohonan yang masih pending HR dan sudah lebih dari 7 hari
+        cutoff_date = timezone.now() - timedelta(days=7)
+        
+        # Gunakan raw SQL untuk menghindari infinite recursion
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE permohonan_permohonan 
+                SET status = %s, 
+                    catatan_hr = %s, 
+                    date_updated = %s
+                WHERE status = %s 
+                AND date_created <= %s
+            """, [
+                cls.StatusPermohonan.TIDAK_VALID,
+                "Tidak ada persetujuan dari HR, silakan buat permohonan kembali",
+                timezone.now(),
+                cls.StatusPermohonan.PENDING_HR,
+                cutoff_date
+            ])
+            
+            affected_rows = cursor.rowcount
+            
+            if affected_rows > 0:
+                logger.info(f"Auto-expired {affected_rows} pending requests to TIDAK_VALID status")
+            
+            return affected_rows
+
+    def is_expired(self):
+        """
+        Mengecek apakah permohonan sudah kadaluarsa (lebih dari 7 hari tanpa respon HR)
+        """
+        if self.status != self.StatusPermohonan.PENDING_HR:
+            return False
+        
+        cutoff_date = timezone.now() - timedelta(days=7)
+        return self.date_created <= cutoff_date
 
     class Meta:
         ordering = ['-date_created']
