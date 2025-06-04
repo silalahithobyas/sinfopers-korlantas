@@ -8,6 +8,7 @@ from authentication.models import AuthUser
 from django.utils import timezone
 import logging
 import traceback
+from rest_framework.parsers import MultiPartParser, FormParser
 
 # Tambahkan logger untuk mempermudah debugging
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ class IsPimpinan(permissions.BasePermission):
 
 class PermohonanViewSet(viewsets.ModelViewSet):
     serializer_class = PermohonanSerializer
+    parser_classes = [MultiPartParser, FormParser]
     
     def get_queryset(self):
         user = self.request.user
@@ -64,6 +66,9 @@ class PermohonanViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(personel=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save()
     
     @action(detail=True, methods=['post'], url_path='hr-review')
     def hr_review(self, request, pk=None):

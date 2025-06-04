@@ -12,8 +12,13 @@ def validate_file_extension(value):
         return
     ext = os.path.splitext(value.name)[1]
     valid_extensions = ['.pdf']
+    max_file_size = 5 * 1024 * 1024
+
     if not ext.lower() in valid_extensions:
         raise ValidationError('File harus berformat PDF.')
+    
+    if value.size > max_file_size:
+        raise ValidationError('File PDF tidak boleh lebih dari 5MB.')
 
 class Information(BaseModel):
     information_id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True)

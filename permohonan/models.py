@@ -13,6 +13,41 @@ def validate_file_extension(value):
     if not ext.lower() in valid_extensions:
         raise ValidationError('File harus berformat PDF.')
 
+class SaldoCuti(models.Model):
+    personel = models.ForeignKey(AuthUser, on_delete=models.CASCADE, related_name='saldo_cuti')
+    tahun = models.PositiveIntegerField()
+    hak_cuti = models.PositiveIntegerField(default=12)  # Hak cuti per tahun
+    cuti_diambil = models.PositiveIntegerField(default=0)
+    sisa_bawa_tahun_lalu = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('personel', 'tahun')
+        ordering = ['-tahun']
+
+    @property
+    def sisa_cuti(self):
+        return self.hak_cuti + self.sisa_bawa_tahun_lalu - self.cuti_diambil
+
+    def __str__(self):
+        return f"{self.personel.username} - Tahun {self.tahun} - Sisa cuti: {self.sisa_cuti}"
+
+    @classmethod
+    def get_or_create_for_year(cls, personel, tahun):
+        saldo, created = cls.objects.get_or_create(personel=personel, tahun=tahun)
+        if created:
+            # Ambil sisa cuti tahun lalu maksimal 12 hari
+            saldo_lalu = cls.objects.filter(personel=personel, tahun=tahun-1).first()
+            if saldo_lalu:
+                saldo.sisa_bawa_tahun_lalu = min(12, saldo_lalu.sisa_cuti)
+                saldo.save()
+        return saldo
+
+    def update_cuti_diambil(self, jumlah_hari):
+        self.cuti_diambil += jumlah_hari
+        if self.cuti_diambil > self.hak_cuti + self.sisa_bawa_tahun_lalu:
+            raise ValidationError("Jumlah cuti diambil melebihi hak cuti dan sisa bawa tahun lalu.")
+        self.save()
+
 class Permohonan(BaseModel):
     class JenisPermohonan(models.TextChoices):
         CUTI = 'Cuti', 'Cuti'
@@ -32,6 +67,38 @@ class Permohonan(BaseModel):
         choices=JenisPermohonan.choices,
         default=JenisPermohonan.CUTI
     )
+
+    tanggal_mulai = models.DateField(null=True, blank=True)
+    tanggal_selesai = models.DateField(null=True, blank=True)
+    jumlah_hari = models.PositiveIntegerField(null=True, blank=True)
+
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_updated = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        super().clean()
+
+        if self.jenis_permohonan == self.JenisPermohonan.CUTI:
+            if not self.tanggal_mulai or not self.tanggal_selesai:
+                raise ValidationError("Tanggal mulai dan tanggal selesai wajib diisi untuk permohonan cuti.")
+
+            if self.tanggal_mulai > self.tanggal_selesai:
+                raise ValidationError("Tanggal mulai tidak boleh lebih besar dari tanggal selesai.")
+
+            self.jumlah_hari = (self.tanggal_selesai - self.tanggal_mulai).days + 1
+
+            tahun_cuti = self.tanggal_mulai.year
+            saldo = SaldoCuti.get_or_create_for_year(self.personel, tahun_cuti)
+
+            # Periksa apakah permohonan melebihi sisa cuti
+            if self.jumlah_hari > saldo.sisa_cuti:
+                raise ValidationError(f"Pengajuan cuti melebihi sisa hak cuti tahunan ({saldo.sisa_cuti} hari).")
+
+    def save(self, *args, **kwargs):
+        if self.jenis_permohonan == self.JenisPermohonan.CUTI and self.tanggal_mulai and self.tanggal_selesai:
+            self.jumlah_hari = (self.tanggal_selesai - self.tanggal_mulai).days + 1
+        super().save(*args, **kwargs)
+
     alasan = models.TextField()
     file_pendukung = models.FileField(
         upload_to='permohonan/', 

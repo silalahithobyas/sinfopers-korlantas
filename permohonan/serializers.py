@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Permohonan
+from .models import Permohonan, SaldoCuti
 from authentication.models import AuthUser
 from django.utils import timezone
 
@@ -18,7 +18,7 @@ class PermohonanSerializer(serializers.ModelSerializer):
             'status', 'status_display', 
             'hr_reviewer', 'hr_reviewer_name', 'hr_review_date', 'catatan_hr',
             'pimpinan_reviewer', 'pimpinan_reviewer_name', 'pimpinan_review_date', 'catatan_pimpinan',
-            'date_created', 'date_updated'
+            'date_created', 'date_updated', 'tanggal_mulai_cuti', 'tanggal_selesai_cuti'
         ]
         read_only_fields = [
             'personel', 'status', 'hr_reviewer', 'hr_review_date', 
@@ -43,7 +43,36 @@ class PermohonanSerializer(serializers.ModelSerializer):
         if obj.pimpinan_reviewer:
             return obj.pimpinan_reviewer.get_full_name() or obj.pimpinan_reviewer.username
         return None
-    
+
+    def validate(self, data):
+        if data.get('jenis_permohonan') == Permohonan.JenisPermohonan.CUTI:
+            tanggal_mulai = data.get('tanggal_mulai')
+            tanggal_selesai = data.get('tanggal_selesai')
+            
+            if not tanggal_mulai or not tanggal_selesai:
+                raise serializers.ValidationError("Tanggal mulai dan tanggal selesai wajib diisi untuk permohonan cuti.")
+            
+            if tanggal_mulai > tanggal_selesai:
+                raise serializers.ValidationError("Tanggal mulai tidak boleh lebih besar dari tanggal selesai.")
+            
+            jumlah_hari = (tanggal_selesai - tanggal_mulai).days + 1
+            
+            tahun_cuti = tanggal_mulai.year
+            personel = self.context['request'].user
+            saldo = SaldoCuti.get_or_create_for_year(personel, tahun_cuti)
+            
+            if jumlah_hari > saldo.sisa_cuti:
+                raise serializers.ValidationError(
+                    f"Jumlah hari cuti yang diajukan ({jumlah_hari} hari) melebihi sisa saldo cuti Anda ({saldo.sisa_cuti} hari)."
+                )
+            
+            data['jumlah_hari'] = jumlah_hari
+
+            instance = Permohonan(**data)
+            instance.clean()
+        
+        return data
+
     def create(self, validated_data):
         # Set personel to current user
         user = self.context['request'].user
