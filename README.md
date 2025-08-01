@@ -32,6 +32,8 @@ SINFOPERS adalah backend dari sistem manajemen sumber daya manusia (HRMS) yang d
 
 **Final product** : https://sinfopers.netlify.app
 
+**Promotional video** : https://youtu.be/IwvAD3qSoaU?si=IQhmBr4312Xhhykt
+
 **Project link** : 
 * Backend : https://gitlab.cs.ui.ac.id/propensi-2024-2025-genap/kelas-b/b02-propensiu-be.git
 * Frontend : https://gitlab.cs.ui.ac.id/propensi-2024-2025-genap/kelas-b/b02-propensiu-fe.git
