@@ -15,7 +15,7 @@
 ## **SISTEM INFORMASI PERSONEL (SINFOPERS)**  
 **Human Resource Management System (HRMS) for Korps Lalu Lintas Polri**  
 
-SINFOPERS adalah backend dari sistem manajemen sumber daya manusia (HRMS) yang dikembangkan menggunakan **Django** dan **Django REST Framework (DRF)** untuk meningkatkan transparansi, efisiensi, dan akurasi dalam pengelolaan personel di Korps Lalu Lintas Polri.  
+SINFOPERS (Sistem Informasi Personel) adalah sistem manajemen sumber daya manusia yang komprehensif, dikembangkan untuk merampingkan operasional kepegawaian di Korps Lalu Lintas POLRI (Korlantas). Dirancang untuk mengelola lebih dari 1.000 data personel, sistem ini menyediakan platform terpusat untuk menangani proses penugasan, pelacakan data, komunikasi internal, dan permintaan administrasi. Dibangun untuk meningkatkan efisiensi dan akurasi proses kepegawaian, SINFOPERS memiliki fitur utama seperti manajemen data personel, pelacakan penugasan, manajemen cuti, dan otomatisasi alur kerja. Dengan sentralisasi akses informasi dan standarisasi tugas-tugas kepegawaian, SINFOPERS meningkatkan transparansi, akuntabilitas, dan responsivitas di seluruh unit operasional.
 
 ![login-image.png](images/login-page.png)
 
