@@ -30,7 +30,8 @@ SINFOPERS adalah backend dari sistem manajemen sumber daya manusia (HRMS) yang d
 - **Routing**: React Router
 - **API Client**: Axios
 
-Final product : https://sinfopers.netlify.app
-Project link : 
+**Final product** : https://sinfopers.netlify.app
+
+**Project link** : 
 * Backend : https://gitlab.cs.ui.ac.id/propensi-2024-2025-genap/kelas-b/b02-propensiu-be.git
 * Frontend : https://gitlab.cs.ui.ac.id/propensi-2024-2025-genap/kelas-b/b02-propensiu-fe.git
