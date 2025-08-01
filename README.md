@@ -10,10 +10,14 @@
 
 <a name="readme-top"></a><br>
 
+![logo-image.png](images/logo-image.png)
+
 ## **SISTEM INFORMASI PERSONEL (SINFOPERS)**  
 **Human Resource Management System (HRMS) for Korps Lalu Lintas Polri**  
 
 SINFOPERS adalah backend dari sistem manajemen sumber daya manusia (HRMS) yang dikembangkan menggunakan **Django** dan **Django REST Framework (DRF)** untuk meningkatkan transparansi, efisiensi, dan akurasi dalam pengelolaan personel di Korps Lalu Lintas Polri.  
+
+![login-image.png](images/login-page.png)
 
 ### **🚀 Teknologi yang Digunakan**  
 - **Backend**: Django, DRF  
@@ -26,4 +30,7 @@ SINFOPERS adalah backend dari sistem manajemen sumber daya manusia (HRMS) yang d
 - **Routing**: React Router
 - **API Client**: Axios
 
-![diagram_database.png](diagram_database.png)
+Final product : https://sinfopers.netlify.app
+Project link : 
+* Backend : https://gitlab.cs.ui.ac.id/propensi-2024-2025-genap/kelas-b/b02-propensiu-be.git
+* Frontend : https://gitlab.cs.ui.ac.id/propensi-2024-2025-genap/kelas-b/b02-propensiu-fe.git
